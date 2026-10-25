@@ -167,7 +167,7 @@ Temperatures are fitted on the **previous** season's out-of-sample forecasts, ne
 | Forecast | Reliability ↓ | Resolution ↑ | Brier |
 | --- | --- | --- | --- |
 | Closing line | 0.0012 | 0.0786 | 0.5681 |
-| Blend | 0.0016 | 0.0661 | 0.5811 |
+| Blend | 0.0016 | 0.0660 | 0.5812 |
 | Blend + temperature | 0.0014 | 0.0628 | 0.5841 |
 
 Read it as: reliability is nearly identical (0.0016 vs 0.0012) and almost the whole gap is **resolution** (0.0661 vs 0.0786). The model is not over-confident, it simply knows less. That is why a temperature cannot close the gap, and why the only meaningful direction is more information (xG, injuries, European fixtures), not sharper tuning.
