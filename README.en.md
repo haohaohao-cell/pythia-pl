@@ -10,6 +10,8 @@
 
 **[Live report](https://haohaohao-cell.github.io/pythia-pl/)** · **[Interactive explorer](https://haohaohao-cell.github.io/pythia-pl/explorer.html)** — pick two clubs and the scoreline distribution is recomputed in your browser.
 
+The full narrative rather than the tables: **[0.021 — five failed experiments in Premier League forecasting](docs/POST.md)**.
+
 It does not advertise "62% accuracy". It answers one question: **with the data, metrics
 and benchmarks all on the table, how far is a model from the bookmaker's closing line?**
 
@@ -438,6 +440,8 @@ pythia fixtures --save              # next round: model vs opening price
 pythia predict Arsenal Liverpool
 pythia simulate --sims 20000
 pythia value --min-edge 0.05
+pythia ledger                       # week-by-week season account
+pythia doctor                       # data source and cache health
 
 # optional: xG study
 pip install -e ".[xg]" && pythia fetch --xg && pythia build && pythia ablate

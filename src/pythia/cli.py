@@ -321,6 +321,14 @@ def _cmd_ledger(args: argparse.Namespace) -> None:
     print(f"\nsaved {path}")
 
 
+def _cmd_doctor(args: argparse.Namespace) -> None:
+    from .doctor import format_checks, has_failures, run_checks
+
+    checks = run_checks()
+    print(format_checks(checks))
+    raise SystemExit(1 if has_failures(checks) else 0)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="pythia", description="Premier League forecast benchmark")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -371,6 +379,9 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("ledger", help="running season account: model vs closing line")
     p.add_argument("--season", default=None)
     p.set_defaults(func=_cmd_ledger)
+
+    p = sub.add_parser("doctor", help="data source and cache health check")
+    p.set_defaults(func=_cmd_doctor)
 
     p = sub.add_parser("fpl", help="squad availability snapshot from the FPL API")
     p.add_argument("--snapshot", action="store_true", help="commit today's team-level snapshot")

@@ -8,6 +8,8 @@
 
 **[在线看板](https://haohaohao-cell.github.io/pythia-pl/)** · **[交互探索器](https://haohaohao-cell.github.io/pythia-pl/explorer.html)** —— 选两支球队，浏览器里实时算概率和比分分布（不需要服务器）。
 
+想看完整叙事而不是结论表？长文一篇：**[0.021：一个英超预测项目的五场失败](docs/POST.md)**。
+
 一个**可复现、可审计**的英超赛果概率预测器。不做"准确率 62%"式的宣传，只回答一个问题：
 **在数据、指标和基准都摆在桌面上的时候，模型离博彩收盘赔率还有多远？**
 
@@ -465,6 +467,8 @@ pythia fixtures --save              # 下一轮逐场预测（模型 vs 初盘�
 pythia predict Arsenal Liverpool    # 单场概率 + 期望进球 + 最可能比分
 pythia simulate --sims 20000        # 剩余赛程模拟 2 万次
 pythia value --min-edge 0.05        # 附录 B：平注价值探针
+pythia ledger                       # 本赛季逐周记账
+pythia doctor                       # 数据源与缓存健康检查
 ```
 
 任意一场的预测长这样：
