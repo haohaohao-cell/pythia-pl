@@ -18,6 +18,44 @@ treats that as the headline finding instead of burying it.
 
 ---
 
+## In plain English: what this does
+
+Give every Premier League match three probabilities (home / draw / away), then hold them
+against the bookmaker's price. The point is not to look accurate — it is to **lose for a
+reason you can name**.
+
+**Why it is hard.** A match has about 2.6 goals and one deflection can decide it; draws are
+23% of results with almost no reliable signal; and with three classes "accuracy" is close to
+meaningless — always picking the home side already scores 45%.
+
+**How it works, in five steps.**
+
+1. **Data** — 13 seasons, 4,630 matches: score, shots, shots on target, cards, and several
+   books' opening and closing prices.
+2. **Features** — Elo ratings (chess-style: win to gain, lose to drop, +60 for home, one-third
+   regression to the mean each summer) plus the last five matches, rest days and season
+   progress. Hard rule: **only information available before kick-off**.
+3. **Models** — a constant base rate, Elo fed into a logistic regression, **Dixon-Coles**
+   (each club becomes an attack and a defence number, expectation becomes two Poisson rates,
+   and the scoreline is drawn from the resulting distribution), gradient-boosted trees, and a
+   weighted blend of the last three.
+4. **Scoring** — log loss: saying 90% and being wrong costs far more than saying 45% and
+   being wrong, so neither hedging nor bravado is rewarded.
+5. **Anti-cheating** — a season is forecast only from data before its opening day, hyper-
+   parameters are chosen on older seasons, two tests prove that removing future matches does
+   not change a single past feature, and the benchmark is the **closing line**, not ourselves.
+
+**Stack**: Python, pandas/numpy, scipy (fitting Dixon-Coles by maximum likelihood),
+scikit-learn, matplotlib, parquet, GitHub Actions for the weekly rerun, and GitHub Pages with
+plain JavaScript that recomputes the Poisson distribution in the browser.
+
+**Not a deep-learning project.** No neural nets, no foundation models — the effort is in
+honest evaluation, not in scale.
+
+> **I don't know how to beat the bookmaker. I do know exactly how and why I lose.**
+
+---
+
 ## Findings
 
 1. **The model does not beat the closing line.** Over 3,044 out-of-sample matches the
