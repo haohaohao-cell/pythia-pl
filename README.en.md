@@ -5,6 +5,7 @@
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776ab.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-111827.svg)](LICENSE)
 [![Backtest](https://img.shields.io/badge/backtest-3%2C044%20matches-2563eb.svg)](#results)
+[![weekly-update](https://github.com/haohaohao-cell/pythia-pl/actions/workflows/weekly.yml/badge.svg)](https://github.com/haohaohao-cell/pythia-pl/actions/workflows/weekly.yml)
 
 [中文说明](README.md) · A reproducible, auditable probabilistic forecaster for Premier League results.
 

@@ -5,6 +5,7 @@
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776ab.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-111827.svg)](LICENSE)
 [![Backtest](https://img.shields.io/badge/backtest-3%2C044%20matches-2563eb.svg)](#结果)
+[![weekly-update](https://github.com/haohaohao-cell/pythia-pl/actions/workflows/weekly.yml/badge.svg)](https://github.com/haohaohao-cell/pythia-pl/actions/workflows/weekly.yml)
 
 **[在线看板](https://haohaohao-cell.github.io/pythia-pl/)** · **[交互探索器](https://haohaohao-cell.github.io/pythia-pl/explorer.html)** —— 选两支球队，浏览器里实时算概率和比分分布（不需要服务器）。
 
