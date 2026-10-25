@@ -35,7 +35,7 @@ def download_fixtures(*, force: bool = False, timeout: int = 60) -> Path:
     last_err: Exception | None = None
     for attempt in range(3):
         try:
-            resp = requests.get(FIXTURE_URL, timeout=timeout, headers={"User-Agent": "pl-predictor/0.1"})
+            resp = requests.get(FIXTURE_URL, timeout=timeout, headers={"User-Agent": "pythia-pl/0.1"})
             resp.raise_for_status()
             text = resp.content.decode("utf-8-sig")
             FIXTURE_PATH.write_text(text, encoding="utf-8")

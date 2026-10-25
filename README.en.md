@@ -1,4 +1,6 @@
-# Premier League Forecaster
+# PYTHIA — Premier League Forecaster
+
+> **Every forecast is a claim. Pythia shows the receipts.**
 
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776ab.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-111827.svg)](LICENSE)
@@ -110,7 +112,7 @@ tail. That is the usual cost of treating "draw" as an independent class.
 | Accuracy as the headline | Log loss first, Brier and RPS second, accuracy for reference only |
 | No benchmark | Base rates, Elo, each single model, and the **de-vigged closing line** |
 | Only wins reported | All 9 test seasons, including 2020-21 and 2025-26 where the gap widens |
-| Irreproducible claims | `plpred fetch && plpred report` rebuilds every figure |
+| Irreproducible claims | `pythia fetch && pythia report` rebuilds every figure |
 | No leakage guard | `tests/test_leakage.py` pins features by truncation *and* by mutating future results |
 
 The four findings are credible precisely because the test suite exists to stop the
@@ -149,15 +151,15 @@ log-loss difference; GBDT hyper-parameters selected on 2017-18, a season that si
 python -m venv .venv && . .venv/bin/activate     # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 
-plpred fetch          # 13 seasons of results + the upcoming fixture list
-plpred build          # feature table -> data/processed/features.parquet
-plpred backtest       # walk-forward, ~10 s, prints the leaderboard
-plpred report         # figures + docs/index.html + injects the Results block above
+pythia fetch          # 13 seasons of results + the upcoming fixture list
+pythia build          # feature table -> data/processed/features.parquet
+pythia backtest       # walk-forward, ~10 s, prints the leaderboard
+pythia report         # figures + docs/index.html + injects the Results block above
 
-plpred fixtures --save              # next round: model vs opening price
-plpred predict Arsenal Liverpool
-plpred simulate --sims 20000
-plpred value --min-edge 0.05
+pythia fixtures --save              # next round: model vs opening price
+pythia predict Arsenal Liverpool
+pythia simulate --sims 20000
+pythia value --min-edge 0.05
 ```
 
 ---
@@ -176,7 +178,7 @@ Points already banked are real, not simulated.
 ## Repository layout
 
 ```text
-src/plpred/
+src/pythia/
 ├─ ingest/       # results + fixture feed, column-name-adaptive parsing
 ├─ features/     # Elo and lagged form
 ├─ models/       # base_rates, elo_logit, dixon_coles, gbdt, blend

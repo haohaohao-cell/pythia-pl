@@ -33,13 +33,13 @@ jobs:
         env:
           MPLBACKEND: Agg
         run: |
-          plpred fetch
-          plpred build
-          plpred report
+          pythia fetch
+          pythia build
+          pythia report
 
       - name: Commit refreshed artefacts
         run: |
-          git config user.name "pl-predictor-bot"
+          git config user.name "pythia-pl-bot"
           git config user.email "bot@users.noreply.github.com"
           git add -A reports docs README.md README.en.md || true
           if git diff --cached --quiet; then

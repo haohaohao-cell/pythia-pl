@@ -1,4 +1,4 @@
-"""Command line entry point: ``plpred <command>``."""
+"""Command line entry point: ``pythia <command>``."""
 
 from __future__ import annotations
 
@@ -180,7 +180,7 @@ def _cmd_fixtures(args: argparse.Namespace) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="plpred", description="Premier League forecast benchmark")
+    parser = argparse.ArgumentParser(prog="pythia", description="Premier League forecast benchmark")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("fetch", help="download raw CSVs from football-data.co.uk")

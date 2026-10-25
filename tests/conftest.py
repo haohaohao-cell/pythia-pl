@@ -61,7 +61,7 @@ def matches() -> pd.DataFrame:
 
 @pytest.fixture
 def features(matches: pd.DataFrame) -> pd.DataFrame:
-    from plpred.features.elo import add_elo
-    from plpred.features.rolling import add_form_features
+    from pythia.features.elo import add_elo
+    from pythia.features.rolling import add_form_features
 
     return add_form_features(add_elo(matches))

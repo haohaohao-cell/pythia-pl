@@ -240,7 +240,7 @@ def write_dashboard(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PL Predictor — {season}</title>
+<title>PYTHIA — Premier League forecast {season}</title>
 <style>
   :root {{ --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --accent:#2563eb; }}
   * {{ box-sizing: border-box; }}
@@ -275,9 +275,9 @@ def write_dashboard(
 <body>
 <div class="wrap">
 <header>
-  <h1>Premier League predictor</h1>
-  <div class="sub">{season} · walk-forward backtest over {stats['n_matches']} out-of-sample matches ·
-  benchmark: {MODEL_DISPLAY['market']}</div>
+  <h1>PYTHIA</h1>
+  <div class="sub">Premier League forecast · {season} · walk-forward backtest over
+  {stats['n_matches']} out-of-sample matches · benchmark: {MODEL_DISPLAY['market']}</div>
 </header>
 
 <div class="cards">
@@ -316,7 +316,7 @@ added to points already banked.</p>
 <footer>
   Data: football-data.co.uk (results, shots, closing odds). Models: base rates, Elo + softmax, Dixon-Coles,
   gradient boosting, and a shrunk blend of the last three. Reproduce with
-  <code>plpred fetch &amp;&amp; plpred report</code>. Research project — no betting advice, no profit claims.
+  <code>pythia fetch &amp;&amp; pythia report</code>. Research project — no betting advice, no profit claims.
 </footer>
 </div>
 </body>

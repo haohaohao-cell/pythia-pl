@@ -11,8 +11,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from plpred.features.elo import add_elo
-from plpred.features.rolling import add_form_features
+from pythia.features.elo import add_elo
+from pythia.features.rolling import add_form_features
 
 from conftest import make_matches
 
@@ -90,7 +90,7 @@ def test_form_window_uses_only_completed_matches(matches: pd.DataFrame) -> None:
 
 
 def test_all_feature_columns_present(features: pd.DataFrame) -> None:
-    from plpred.features.rolling import FEATURE_COLUMNS
+    from pythia.features.rolling import FEATURE_COLUMNS
 
     missing = [c for c in FEATURE_COLUMNS if c not in features.columns]
     assert not missing, f"model matrix is missing {missing}"

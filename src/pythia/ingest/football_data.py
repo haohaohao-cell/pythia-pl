@@ -58,7 +58,7 @@ def download_season(code: str, *, force: bool = False, timeout: int = 60) -> Pat
     last_err: Exception | None = None
     for attempt in range(4):
         try:
-            resp = requests.get(url, timeout=timeout, headers={"User-Agent": "pl-predictor/0.1"})
+            resp = requests.get(url, timeout=timeout, headers={"User-Agent": "pythia-pl/0.1"})
             resp.raise_for_status()
             # The payload is UTF-8 with a BOM; decode explicitly and write UTF-8.
             text = resp.content.decode("utf-8-sig")
@@ -141,7 +141,7 @@ def normalise(df: pd.DataFrame, season: str) -> pd.DataFrame:
 def read_season(code: str) -> pd.DataFrame:
     path = season_path(code)
     if not path.exists():
-        raise FileNotFoundError(f"missing {path}; run `plpred fetch` first")
+        raise FileNotFoundError(f"missing {path}; run `pythia fetch` first")
     raw = pd.read_csv(path, dtype=str, encoding="utf-8-sig", on_bad_lines="skip")
     raw.columns = [c.strip() for c in raw.columns]
     return normalise(raw, season_label(int(code[:2]) + 2000))

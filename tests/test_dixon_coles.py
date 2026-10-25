@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from plpred.models.dixon_coles import DixonColes
+from pythia.models.dixon_coles import DixonColes
 
 from conftest import make_matches
 

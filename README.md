@@ -1,4 +1,6 @@
-# 英超预测器 · Premier League Forecaster
+# PYTHIA · 英超概率预测器
+
+> **神谕也要对账。** 每次预测都是一句断言，这个仓库负责把断言和收盘赔率摆在一起核对。
 
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776ab.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-111827.svg)](LICENSE)
@@ -104,7 +106,7 @@ Gap to the closing line: **+0.0209** log loss (95% CI +0.0147 to +0.0271). Not s
 | 准确率当主指标 | 以 log loss 为主，Brier / RPS 为辅，准确率仅作参考 |
 | 没有基准 | 常数基线 + Elo + 单模型 + **博彩收盘价**，四条对照线全在 |
 | 只报赢的那些 | 报全部 9 个赛季，包括输得更惨的 2020-21 和 2025-26 |
-| 结论不可复现 | `plpred fetch && plpred report` 一条命令重建全部图表 |
+| 结论不可复现 | `pythia fetch && pythia report` 一条命令重建全部图表 |
 | 无防泄漏测试 | `tests/test_leakage.py` 用"截断数据"和"篡改未来结果"两种方式钉死特征 |
 
 那 4 条结论之所以可信，是因为代码里有一组测试专门防止我自己骗自己。
@@ -117,7 +119,7 @@ Gap to the closing line: **+0.0209** log loss (95% CI +0.0147 to +0.0271). Not s
 
 - **football-data.co.uk**：2014-15 至 2026-27 共 13 个赛季、4,630 场比赛，含比分、射门、射正、红黄牌，以及多家博彩公司的**初盘与收盘盘**。
 - 收盘价来源按赛季自适应：2024-25 及以前用 Pinnacle `PS*`，2026-27 起 Pinnacle 列名改为 `PP*`，2025-26 因 Pinnacle 覆盖不足（仅 55%）自动退到 Bet365 收盘盘——**每行都记录了实际使用的盘口来源**，不假装全样本同源。
-- 时区、队名（`Man United` / `Nott'm Forest` / `Sheffield United`）统一走 `src/plpred/teams.py` 的别名表，未知球队原样保留，不会静默丢失。
+- 时区、队名（`Man United` / `Nott'm Forest` / `Sheffield United`）统一走 `src/pythia/teams.py` 的别名表，未知球队原样保留，不会静默丢失。
 
 ### 特征（全部为赛前可得）
 
@@ -158,16 +160,16 @@ python -m venv .venv && . .venv/bin/activate     # Windows: .venv\Scripts\activa
 pip install -e ".[dev]"
 
 # 2. 拉数据 → 建特征 → 回测 → 出图
-plpred fetch          # 13 个赛季的 CSV + 下一轮赛程落到 data/raw/
-plpred build          # 生成 data/processed/features.parquet
-plpred backtest       # walk-forward，约 10 秒，打印排行榜
-plpred report         # 图表 + docs/index.html + 自动回填本 README 的结果块
+pythia fetch          # 13 个赛季的 CSV + 下一轮赛程落到 data/raw/
+pythia build          # 生成 data/processed/features.parquet
+pythia backtest       # walk-forward，约 10 秒，打印排行榜
+pythia report         # 图表 + docs/index.html + 自动回填本 README 的结果块
 
 # 3. 常用小工具
-plpred fixtures --save              # 下一轮逐场预测（模型 vs 初盘）
-plpred predict Arsenal Liverpool    # 单场概率 + 期望进球 + 最可能比分
-plpred simulate --sims 20000        # 剩余赛程模拟 2 万次
-plpred value --min-edge 0.05        # 附录 B：平注价值探针
+pythia fixtures --save              # 下一轮逐场预测（模型 vs 初盘）
+pythia predict Arsenal Liverpool    # 单场概率 + 期望进球 + 最可能比分
+pythia simulate --sims 20000        # 剩余赛程模拟 2 万次
+pythia value --min-edge 0.05        # 附录 B：平注价值探针
 ```
 
 任意一场的预测长这样：
@@ -204,8 +206,8 @@ most likely scorelines:
 ## 目录结构
 
 ```text
-pl-predictor/
-├─ src/plpred/
+pythia-pl/
+├─ src/pythia/
 │  ├─ ingest/        # 赛果与赛程下载、列名自适应解析
 │  ├─ features/      # Elo、滚动状态（严格滞后）
 │  ├─ models/        # base_rates / elo_logit / dixon_coles / gbdt / blend
@@ -214,7 +216,7 @@ pl-predictor/
 │  ├─ simulate.py    # 剩余赛程蒙特卡洛
 │  ├─ plots.py       # 全部图表
 │  ├─ report.py      # 榜单、README 回填、单文件 HTML 看板
-│  └─ cli.py         # plpred 命令
+│  └─ cli.py         # pythia 命令
 ├─ tests/            # 39 个测试，重点是防泄漏
 ├─ reports/          # 生成的图表与 CSV（已入库，方便直接看）
 ├─ docs/index.html   # 自包含看板，可直接开 GitHub Pages

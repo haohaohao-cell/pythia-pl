@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from sklearn.metrics import log_loss as sklearn_log_loss
 
-from plpred.eval.metrics import accuracy, brier, evaluate, log_loss, rps
+from pythia.eval.metrics import accuracy, brier, evaluate, log_loss, rps
 
 
 @pytest.fixture

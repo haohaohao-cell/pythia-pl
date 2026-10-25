@@ -5,8 +5,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from plpred.forecast import round_markdown
-from plpred.ingest.fixtures_feed import parse_fixtures
+from pythia.forecast import round_markdown
+from pythia.ingest.fixtures_feed import parse_fixtures
 
 
 def _raw() -> pd.DataFrame:

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-from plpred.ingest.football_data import normalise
-from plpred.teams import team_key
+from pythia.ingest.football_data import normalise
+from pythia.teams import team_key
 
 
 def _raw(**overrides) -> pd.DataFrame:

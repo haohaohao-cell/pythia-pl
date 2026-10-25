@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from plpred.odds import implied_probs, market_probs, overround
+from pythia.odds import implied_probs, market_probs, overround
 
 
 def test_implied_probs_sum_to_one() -> None:
