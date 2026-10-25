@@ -18,6 +18,8 @@ PRIOR_GF = 1.45
 PRIOR_GA = 1.45
 PRIOR_SOT = 4.50
 PRIOR_SHOTS = 10.0
+PRIOR_XG = 1.40
+PRIOR_XG_AG = 1.40
 
 
 def team_long_frame(matches: pd.DataFrame) -> pd.DataFrame:
@@ -71,6 +73,14 @@ def add_form_features(matches: pd.DataFrame) -> pd.DataFrame:
     long["shots_form"] = _roll(long["shots_for"], w)
     long["goal_diff_form"] = long["gf_form"] - long["ga_form"]
 
+    # xG: how many chances a side created and conceded, lagged like everything else.
+    has_xg = long["xg_for"].notna().any()
+    if has_xg:
+        long["xg_form"] = _roll(long["xg_for"], w)
+        long["xg_ag_form"] = _roll(long["xg_ag"], w)
+        long["xg_diff_form"] = long["xg_form"] - long["xg_ag_form"]
+        long["finishing_form"] = _roll(long["gf"] - long["xg_for"], w)
+
     long["pts_ewm"] = long["points"].shift(1).ewm(halflife=FORM_EWM_HALFLIFE, min_periods=1).mean()
 
     long["rest_days"] = long.groupby("team")["date"].diff().dt.days
@@ -89,10 +99,12 @@ def add_form_features(matches: pd.DataFrame) -> pd.DataFrame:
     long["newly_promoted"] = promoted
 
     def side(frame: pd.DataFrame, prefix: str, is_home: bool) -> pd.DataFrame:
-        part = frame.loc[frame["is_home"] == is_home, [
+        cols = [
             "match_id", "pts_form", "gf_form", "ga_form", "sot_form", "sot_ag_form",
             "shots_form", "goal_diff_form", "pts_ewm", "rest_days", "match_no", "newly_promoted",
-        ]]
+        ]
+        cols += [c for c in ("xg_form", "xg_ag_form", "xg_diff_form", "finishing_form") if c in frame.columns]
+        part = frame.loc[frame["is_home"] == is_home, cols]
         return part.rename(columns={c: f"{prefix}_{c}" for c in part.columns if c != "match_id"})
 
     home = side(long, "home", True)
@@ -115,9 +127,17 @@ def add_form_features(matches: pd.DataFrame) -> pd.DataFrame:
         out[f"{prefix}_rest_days"] = out[f"{prefix}_rest_days"].fillna(7.0)
         out[f"{prefix}_match_no"] = out[f"{prefix}_match_no"].fillna(1.0)
         out[f"{prefix}_newly_promoted"] = out[f"{prefix}_newly_promoted"].fillna(1.0)
+        for col in ("xg_form", "xg_ag_form", "xg_diff_form", "finishing_form"):
+            name = f"{prefix}_{col}"
+            if name in out.columns:
+                prior = PRIOR_XG_AG if col in ("xg_ag_form",) else (0.0 if col in ("xg_diff_form", "finishing_form") else PRIOR_XG)
+                out[name] = out[name].fillna(prior)
 
     # Differences carry most of the signal for tree models.
-    for col in ("pts_form", "gf_form", "ga_form", "sot_form", "sot_ag_form", "goal_diff_form", "pts_ewm", "rest_days"):
+    diff_cols = ["pts_form", "gf_form", "ga_form", "sot_form", "sot_ag_form", "goal_diff_form", "pts_ewm", "rest_days"]
+    diff_cols += [c for c in ("xg_form", "xg_ag_form", "xg_diff_form", "finishing_form")
+                  if f"home_{c}" in out.columns]
+    for col in diff_cols:
         out[f"diff_{col}"] = out[f"home_{col}"] - out[f"away_{col}"]
 
     out["season_progress"] = out["home_match_no"] / 38.0
@@ -132,3 +152,11 @@ FEATURE_COLUMNS = [
     "home_pts_ewm", "away_pts_ewm", "season_progress",
     "home_newly_promoted", "away_newly_promoted", "home_match_no", "away_match_no",
 ]
+
+#: Everything above plus the xG block, used only when Understat data is present.
+XG_FEATURE_COLUMNS = [
+    "home_xg_form", "away_xg_form", "home_xg_ag_form", "away_xg_ag_form",
+    "diff_xg_form", "diff_xg_ag_form", "diff_xg_diff_form", "diff_finishing_form",
+]
+
+FEATURE_COLUMNS_XG = FEATURE_COLUMNS + XG_FEATURE_COLUMNS

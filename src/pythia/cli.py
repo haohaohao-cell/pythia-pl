@@ -23,6 +23,13 @@ def _cmd_fetch(args: argparse.Namespace) -> None:
     print(f"  next round  {fixtures.name}  {fixtures.stat().st_size / 1024:.0f} KB")
     print(f"fetched {len(SEASON_CODES)} seasons + 1 fixture feed")
 
+    if getattr(args, "xg", False):
+        from .ingest import understat
+
+        data = understat.fetch(force=args.force, verbose=True)
+        print(f"  understat xG  {len(data)} matches  {understat.CACHE_PATH.stat().st_size / 1024:.0f} KB")
+        print("rebuild the feature table with `pythia build` to pick it up")
+
 
 def _cmd_build(args: argparse.Namespace) -> None:
     from .dataset import build_dataset
@@ -179,12 +186,44 @@ def _cmd_fixtures(args: argparse.Namespace) -> None:
         print(f"saved {path}")
 
 
+def _cmd_ablate(args: argparse.Namespace) -> None:
+    from .config import REPORTS_DIR
+    from .dataset import load_dataset
+    from .eval.ablation import has_xg, run_ablation
+    from .report import get_predictions
+
+    features = load_dataset()
+    if not has_xg(features):
+        print('xG features are missing. Run `pythia fetch --xg` then `pythia build` first.')
+        return
+
+    preds = get_predictions()
+    table, summary = run_ablation(features, preds)
+    print(table.round(4).to_string(index=False))
+    print()
+    print(f"{'variant':<12}{'log loss':>10}{'delta':>10}")
+    base_blend = summary.get("blend")
+    for name in ("gbdt", "gbdt_xg", "blend", "blend_xg"):
+        if name in summary:
+            delta = summary[name] - summary["gbdt"]
+            print(f"{name:<12}{summary[name]:>10.4f}{delta:>+10.4f}")
+    if "delta_blend" in summary:
+        d = summary["delta_blend"]
+        print(f"\nblend with xG minus blend: {d['delta']:+.4f} "
+              f"(95% CI {d['ci_low']:+.4f} to {d['ci_high']:+.4f}, P(better)={d['p_better']:.2f})")
+
+    path = REPORTS_DIR / "xg_ablation.csv"
+    table.to_csv(path, index=False)
+    print(f"\nsaved {path}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="pythia", description="Premier League forecast benchmark")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("fetch", help="download raw CSVs from football-data.co.uk")
     p.add_argument("--force", action="store_true", help="ignore cached files")
+    p.add_argument("--xg", action="store_true", help="also fetch Understat xG (needs the [xg] extra)")
     p.set_defaults(func=_cmd_fetch)
 
     p = sub.add_parser("build", help="build the feature table")
@@ -215,6 +254,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--sims", type=int, default=20_000)
     p.add_argument("--top", type=int, default=10)
     p.set_defaults(func=_cmd_simulate)
+
+    p = sub.add_parser("ablate", help="xG ablation: same protocol, one variable changed")
+    p.set_defaults(func=_cmd_ablate)
 
     p = sub.add_parser("value", help="appendix: flat-stake value-bet probe")
     p.add_argument("--model", default="blend")

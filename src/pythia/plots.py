@@ -291,6 +291,28 @@ def season_bars(preds: pd.DataFrame, outdir: Path | None = None) -> Path:
     return _save(fig, "season_logloss.png", outdir)
 
 
+def xg_ablation_chart(table: pd.DataFrame, outdir: Path | None = None) -> Path:
+    """Per-season log-loss change from adding xG; negative is better."""
+    _style()
+    fig, ax = plt.subplots(figsize=(7.0, 3.3))
+    x = np.arange(len(table))
+    delta = table["d_blend"].to_numpy()
+    colors = ["#16a34a" if v < 0 else "#dc2626" for v in delta]
+    ax.bar(x, delta, color=colors, width=0.62, alpha=0.9)
+    ax.axhline(0, color="#111827", linewidth=0.9)
+
+    mean_delta = float(np.mean(delta))
+    ax.axhline(mean_delta, color="#2563eb", linestyle="--", linewidth=1.1)
+    ax.annotate(f"mean {mean_delta:+.4f}", xy=(len(table) - 0.5, mean_delta), xytext=(0, -12),
+                textcoords="offset points", fontsize=7.5, color="#2563eb", ha="right")
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(table["season"], rotation=45, ha="right", fontsize=7.5)
+    ax.set_ylabel("Δ log loss (xG minus baseline)")
+    ax.set_title("xG helps in most seasons, but the effect is small and uneven", fontsize=9.5)
+    return _save(fig, "xg_ablation.png", outdir)
+
+
 OUTCOME_COLORS = {"H": "#2563eb", "D": "#9ca3af", "A": "#f59e0b"}
 
 

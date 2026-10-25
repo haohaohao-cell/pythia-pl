@@ -186,6 +186,43 @@ That is why tuning cannot close the gap, and why the roadmap is about adding inf
 
 ---
 
+## xG ablation: −0.0014, right direction, very thin
+
+"Missing xG" is the first criticism this kind of project gets — shots on target are a crude
+proxy for chance creation. So Understat was wired in (2014-15 onwards, 13 seasons, 4,635
+matches, **100% joined**), followed by a strict ablation: same training window, same test
+matches, same hyper-parameters, and the only change is whether the tree model sees the xG
+block (rolling xG for/against, xG difference, finishing overperformance).
+
+| Variant | Log loss | Change |
+| --- | --- | --- |
+| GBDT (no xG) | 0.9911 | — |
+| GBDT + xG | 0.9896 | **−0.0015** |
+| Equal-weight blend (no xG) | 0.9770 | — |
+| Equal-weight blend + xG | 0.9756 | **−0.0014** |
+
+Paired bootstrap: `−0.0014`, 95% CI `[−0.0029, +0.0000]`, P(better) = 0.97. Six of nine
+seasons improve, but **2021-22 alone contributes −0.0058** and three seasons get worse.
+
+![xG ablation](reports/xg_ablation.png)
+
+> The ablation blends with equal weights, which is why the 0.9770 baseline differs slightly
+> from the 0.9767 in the leaderboard. That is deliberate: it keeps xG as the only variable.
+
+**Effective, but thin.** The main model therefore stays xG-free — paying 0.0014 for a weekly
+dependency on a Cloudflare-guarded scraper is a bad trade. xG lives as an optional extra:
+
+```bash
+pip install -e ".[xg]"
+pythia fetch --xg && pythia build && pythia ablate
+```
+
+The useful takeaway is directional: **the gap is not a missing public feature, it is
+information the market has exclusively** — team news, lineups, rotation. The 0.02 is
+roughly the price of knowing who cannot play today.
+
+---
+
 ## Why this is not another accuracy-chasing repo
 
 | Common practice | Here |
@@ -242,6 +279,9 @@ pythia fixtures --save              # next round: model vs opening price
 pythia predict Arsenal Liverpool
 pythia simulate --sims 20000
 pythia value --min-edge 0.05
+
+# optional: xG study
+pip install -e ".[xg]" && pythia fetch --xg && pythia build && pythia ablate
 ```
 
 ---
@@ -304,12 +344,22 @@ because it makes money.
 
 ## Limitations
 
-- No xG features: football-data only ships `HxG/AxG` from 2026-27, so shots on target are
-  a proxy. Adding Understat is the obvious next step.
-- No injuries, lineups or European fixture congestion — part of the gap to the market.
+- **xG is only marginally useful.** Understat was wired in and ablated: −0.0014, so the main
+  model stays xG-free. Shots on target already carry most of the signal.
+- **No injuries, lineups or European fixture congestion** — information the market has and
+  the model does not. By the decomposition above, that is most of the remaining 0.02.
 - Promoted clubs start from a league-average prior; the first five matchdays are the
   weakest point of the season.
-- No post-hoc calibration (temperature/isotonic) yet; that is the most likely small win.
+- **Calibration has been tested**: temperature scaling does not help (median T = 1.00), so
+  the problem is not confidence.
+
+## Roadmap
+
+- [x] Temperature calibration — done, no gain; the gap is not calibration
+- [x] Understat xG ablation — done, −0.0014, kept as an optional extra
+- [ ] Over/under 2.5 and Asian handicap markets
+- [ ] Diebold-Mariano test alongside the bootstrap
+- [ ] Injury data (the FPL API availability flags are the realistic free entry point)
 
 ## Disclaimer
 

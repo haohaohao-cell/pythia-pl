@@ -21,6 +21,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=7.4"]
+xg = ["soccerdata>=2026.1"]
 
 [project.scripts]
 pythia = "pythia.cli:main"

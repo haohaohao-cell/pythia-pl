@@ -47,7 +47,7 @@ TEAMS: tuple[Team, ...] = (
     _t("man_city", "Man City", "曼城", "Manchester City"),
     _t("man_united", "Man United", "曼联", "Manchester United", "Man Utd"),
     _t("middlesbrough", "Middlesbrough", "米德尔斯堡"),
-    _t("newcastle", "Newcastle", "纽卡斯尔联"),
+    _t("newcastle", "Newcastle", "纽卡斯尔联", "Newcastle United"),
     _t("norwich", "Norwich", "诺维奇"),
     _t("nottm_forest", "Nott'm Forest", "诺丁汉森林", "Nottingham Forest"),
     _t("qpr", "QPR", "女王公园巡游者", "Queens Park Rangers"),
