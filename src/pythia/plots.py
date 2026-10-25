@@ -313,6 +313,30 @@ def xg_ablation_chart(table: pd.DataFrame, outdir: Path | None = None) -> Path:
     return _save(fig, "xg_ablation.png", outdir)
 
 
+def derived_market_chart(table: pd.DataFrame, outdir: Path | None = None) -> Path:
+    """Over/under 2.5 log loss per season: model vs market vs base rate."""
+    _style()
+    fig, ax = plt.subplots(figsize=(7.2, 3.3))
+    x = np.arange(len(table))
+    width = 0.26
+    series = (
+        ("base", "#9ca3af", "Base rate"),
+        ("model", COLORS["blend"], "Dixon-Coles"),
+        ("market", COLORS["market"], "Closing line"),
+    )
+    for k, (col, colour, label) in enumerate(series):
+        ax.bar(x + (k - 1) * width, table[col], width=width, color=colour, label=label)
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(table["season"], rotation=45, ha="right", fontsize=7.5)
+    low, high = float(table[["model", "market", "base"]].min().min()), float(table[["model", "market", "base"]].max().max())
+    ax.set_ylim(low - 0.01, high + 0.01)
+    ax.set_ylabel("Log loss (axis truncated)")
+    ax.set_title("Over/under 2.5: the structural model barely beats a constant", fontsize=9.5)
+    ax.legend(ncol=3, fontsize=7.5, loc="upper center", bbox_to_anchor=(0.5, -0.28))
+    return _save(fig, "ou_25.png", outdir)
+
+
 OUTCOME_COLORS = {"H": "#2563eb", "D": "#9ca3af", "A": "#f59e0b"}
 
 

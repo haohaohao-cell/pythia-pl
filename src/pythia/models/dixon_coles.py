@@ -123,9 +123,14 @@ class DixonColes:
         mu = float(np.exp(att_a - def_h))
         return lam, mu
 
-    def score_matrix(self, home: str, away: str) -> np.ndarray:
-        """Joint distribution of the scoreline, shape ``(max_goals, max_goals)``."""
+    def score_matrix(self, home: str, away: str, scale: float = 1.0) -> np.ndarray:
+        """Joint distribution of the scoreline, shape ``(max_goals, max_goals)``.
+
+        ``scale`` multiplies both scoring rates; it exists so a caller can
+        adjust the league's current scoring level without refitting.
+        """
         lam, mu = self._rates(home, away)
+        lam, mu = lam * scale, mu * scale
         ph = _poisson_pmf(np.array([lam]), self.max_goals)[0]
         pa = _poisson_pmf(np.array([mu]), self.max_goals)[0]
         matrix = np.outer(ph, pa)
@@ -135,8 +140,8 @@ class DixonColes:
         matrix[1, 1] *= 1.0 - self.rho_
         return np.clip(matrix, 0, None) / np.clip(matrix, 0, None).sum()
 
-    def outcome_probs(self, home: str, away: str) -> np.ndarray:
-        matrix = self.score_matrix(home, away)
+    def outcome_probs(self, home: str, away: str, scale: float = 1.0) -> np.ndarray:
+        matrix = self.score_matrix(home, away, scale=scale)
         home_win = np.tril(matrix, -1).sum()
         draw = np.trace(matrix)
         away_win = np.triu(matrix, 1).sum()

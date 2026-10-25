@@ -241,6 +241,33 @@ def _cmd_fpl(args: argparse.Namespace) -> None:
         print(f"\nsnapshot saved: {path}")
 
 
+def _cmd_markets(args: argparse.Namespace) -> None:
+    from .config import REPORTS_DIR
+    from .dataset import load_dataset
+    from .eval.derived import evaluate_over_under
+    from . import plots
+
+    features = load_dataset()
+    if features["ou_over"].notna().sum() < 100:
+        print("no over/under odds in the feature table; rebuild with `pythia build --force`")
+        return
+
+    table, summary = evaluate_over_under(features)
+    print(table.round(4).to_string(index=False))
+    print()
+    print(f"{'':<8}{'log loss':>10}")
+    for name in ("model", "market", "base"):
+        print(f"{name:<8}{summary[name]:>10.4f}")
+    print(f"\nmodel minus market: {summary['delta']:+.4f} "
+          f"(95% CI {summary['ci_low']:+.4f} to {summary['ci_high']:+.4f}, "
+          f"P(better)={summary['p_better']:.2f})")
+
+    path = REPORTS_DIR / "ou_25.csv"
+    table.to_csv(path, index=False)
+    plots.derived_market_chart(table)
+    print(f"saved {path} and reports/ou_25.png")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="pythia", description="Premier League forecast benchmark")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -281,6 +308,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("ablate", help="xG ablation: same protocol, one variable changed")
     p.set_defaults(func=_cmd_ablate)
+
+    p = sub.add_parser("markets", help="derived market: over/under 2.5 goals")
+    p.set_defaults(func=_cmd_markets)
 
     p = sub.add_parser("fpl", help="squad availability snapshot from the FPL API")
     p.add_argument("--snapshot", action="store_true", help="commit today's team-level snapshot")

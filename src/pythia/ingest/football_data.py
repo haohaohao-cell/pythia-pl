@@ -40,6 +40,14 @@ OPENING_FAMILIES: tuple[tuple[str, str, str], ...] = (
     ("AvgH", "AvgD", "AvgA"),
 )
 
+#: Over/under 2.5 goals. football-data only ships these from 2019-20 onwards.
+OU_FAMILIES: tuple[tuple[str, str], ...] = (
+    ("B365C>2.5", "B365C<2.5"),
+    ("B365>2.5", "B365<2.5"),
+    ("AvgC>2.5", "AvgC<2.5"),
+    ("Avg>2.5", "Avg<2.5"),
+)
+
 #: Canonical columns kept by :func:`normalise`.
 _FLOAT_COLS = ("fthg", "ftag", "hthg", "htag", "hs", "as_", "hst", "ast", "hxg", "axg")
 
@@ -89,12 +97,13 @@ def _parse_dates(values: pd.Series) -> pd.Series:
 
 
 def _pick_families(df: pd.DataFrame, families, coverage: float):
-    """Return the first odds family whose three columns are sufficiently complete."""
-    for h, d, a in families:
-        if h in df.columns and d in df.columns and a in df.columns:
-            complete = df[[h, d, a]].apply(pd.to_numeric, errors="coerce").notna().all(axis=1)
+    """Return the first odds family whose columns are sufficiently complete."""
+    for family in families:
+        cols = list(family)
+        if all(col in df.columns for col in cols):
+            complete = df[cols].apply(pd.to_numeric, errors="coerce").notna().all(axis=1)
             if complete.mean() >= coverage:
-                return (h, d, a)
+                return tuple(cols)
     return None
 
 
@@ -130,6 +139,12 @@ def normalise(df: pd.DataFrame, season: str) -> pd.DataFrame:
             else:
                 out[col] = pd.to_numeric(df[picked[slot]], errors="coerce")
         out[f"odds_{name}_src"] = "+".join(picked) if picked else ""
+
+    picked_ou = _pick_families(df, OU_FAMILIES, MIN_ODDS_COVERAGE)
+    for slot, side in enumerate(("over", "under")):
+        out[f"ou_{side}"] = (pd.to_numeric(df[picked_ou[slot]], errors="coerce")
+                             if picked_ou else float("nan"))
+    out["ou_src"] = "+".join(picked_ou) if picked_ou else ""
 
     out["season"] = season
     out = out.dropna(subset=["date", "home", "away", "fthg", "ftag"])

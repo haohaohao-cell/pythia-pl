@@ -267,6 +267,44 @@ pythia fpl --snapshot   # store today's snapshot (done weekly by Actions)
 
 ---
 
+## Derived market: over/under 2.5 — where the structural model should shine
+
+Every experiment above was on 1X2. But Dixon-Coles produces a **whole scoreline
+distribution**, so it can price total goals for free, while any classifier over 1X2 labels
+cannot. In principle this is its home turf.
+
+The data imposes a limit: football-data only publishes over/under prices from **2019-20**
+(nothing before), so this is a seven-season, 2,729-match sample.
+
+| | Log loss |
+| --- | --- |
+| Dixon-Coles | 0.6871 |
+| Closing line (de-vigged) | **0.6738** |
+| Base rate | 0.6894 |
+
+Against the market: `+0.0134` (95% CI `+0.0064` to `+0.0205`, P(better)=0.00).
+
+![Over/under 2.5](reports/ou_25.png)
+
+**The third row is the painful one**: the model beats "always quote the same over rate" by
+just **0.0023**, while the market beats it by **0.0156**. The bookmaker actually resolves
+goals; the model almost only has level.
+
+2023-24 is the worst case: 64.7% of matches went over, the model said 48.3% (the market
+said 58.6%). Scaling the scoring rates by the season's running goal level
+(`score_matrix(scale=...)`) pulled 2023-24 from 0.7133 down to 0.6890 but hurt other
+seasons; the net effect sits inside the noise, so it was not adopted.
+
+> **The scoreline distribution is good enough for "who wins" and not good enough for
+> "how many".** The 0.021 gap becomes 0.013 here not because the model improved, but
+> because this market is harder to price and the market's edge is smaller.
+
+```bash
+pythia markets   # reproduce the table and figure (reports/ou_25.csv)
+```
+
+---
+
 ## Why this is not another accuracy-chasing repo
 
 | Common practice | Here |
@@ -403,7 +441,8 @@ because it makes money.
 - [x] Understat xG ablation — done, −0.0014, kept as an optional extra
 - [x] Injury data reconnaissance — **no free history, not backtestable**; snapshots now collected weekly
 - [ ] First real injury ablation once a season of availability snapshots exists
-- [ ] Over/under 2.5 and Asian handicap markets
+- [x] Over/under 2.5 — done; the model beats a constant by only 0.0023
+- [ ] Asian handicap (push handling, same 2019-20 data limit)
 - [ ] Diebold-Mariano test alongside the bootstrap
 
 ## Disclaimer
