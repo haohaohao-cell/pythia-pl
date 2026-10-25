@@ -64,6 +64,35 @@ Gap to the closing line: **+0.0209** log loss (95% CI +0.0147 to +0.0271). Not s
 
 ---
 
+## Next round
+
+Refreshed weekly by GitHub Actions. Model probabilities use only pre-match
+information; the price column is the de-vigged Pinnacle opening line.
+
+<!-- FIXTURES:START -->
+
+**Round of 2026-10-23: 10 fixtures, 10 of them already kicked off and waiting for a result.** Prices are de-vigged Pinnacle openers (`PPH+PPD+PPA`).
+
+| Kick-off | Fixture | Model H / D / A | Price H / D / A | Pick |
+| --- | --- | --- | --- | --- |
+| 10-23 20:00 | Ipswich v Nott'm Forest | 0.33 / 0.26 / 0.41 | 0.31 / 0.28 / 0.41 | A 41% |
+| 10-24 12:30 | Aston Villa v Man City | 0.21 / 0.26 / 0.53 | 0.20 / 0.21 / 0.59 | A 53% |
+| 10-24 15:00 | Arsenal v Everton | 0.65 / 0.22 / 0.13 | 0.66 / 0.21 / 0.13 | H 65% |
+| 10-24 15:00 | Coventry v Fulham | 0.36 / 0.28 / 0.36 | 0.30 / 0.28 / 0.42 | H 36% |
+| 10-24 17:30 | Chelsea v Tottenham | 0.54 / 0.25 / 0.20 | 0.56 / 0.23 / 0.21 | H 54% |
+| 10-25 14:00 | Crystal Palace v Newcastle | 0.38 / 0.27 / 0.35 | 0.31 / 0.27 / 0.42 | H 38% |
+| 10-25 14:00 | Hull v Brentford | 0.38 / 0.27 / 0.34 | 0.20 / 0.25 / 0.56 | H 38% |
+| 10-25 14:00 | Liverpool v Brighton | 0.45 / 0.24 / 0.30 | 0.45 / 0.25 / 0.30 | H 45% |
+| 10-25 14:00 | Man United v Bournemouth | 0.49 / 0.26 / 0.25 | 0.44 / 0.26 / 0.30 | H 49% |
+| 10-25 16:30 | Sunderland v Leeds | 0.38 / 0.26 / 0.36 | 0.31 / 0.30 / 0.39 | H 38% |
+
+
+![Next round](reports/next_round.png)
+
+<!-- FIXTURES:END -->
+
+---
+
 ## Calibration
 
 ![Calibration](reports/calibration.png)
@@ -120,11 +149,12 @@ log-loss difference; GBDT hyper-parameters selected on 2017-18, a season that si
 python -m venv .venv && . .venv/bin/activate     # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 
-plpred fetch          # 13 seasons of CSV into data/raw/
+plpred fetch          # 13 seasons of results + the upcoming fixture list
 plpred build          # feature table -> data/processed/features.parquet
 plpred backtest       # walk-forward, ~10 s, prints the leaderboard
 plpred report         # figures + docs/index.html + injects the Results block above
 
+plpred fixtures --save              # next round: model vs opening price
 plpred predict Arsenal Liverpool
 plpred simulate --sims 20000
 plpred value --min-edge 0.05
@@ -147,15 +177,16 @@ Points already banked are real, not simulated.
 
 ```text
 src/plpred/
-├─ ingest/       # download + column-name-adaptive parsing
+├─ ingest/       # results + fixture feed, column-name-adaptive parsing
 ├─ features/     # Elo and lagged form
 ├─ models/       # base_rates, elo_logit, dixon_coles, gbdt, blend
 ├─ eval/         # walk-forward, metrics, calibration
+├─ forecast.py   # next-round forecasts and a running hit record
 ├─ simulate.py   # Monte Carlo of the remaining schedule
 ├─ plots.py      # every figure
 ├─ report.py     # tables, README injection, single-file HTML dashboard
 └─ cli.py
-tests/           # 29 tests, mostly about leakage
+tests/           # 39 tests, mostly about leakage
 reports/         # generated figures and CSVs (committed for convenience)
 docs/index.html  # self-contained dashboard, ready for GitHub Pages
 ```

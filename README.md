@@ -56,6 +56,35 @@ Gap to the closing line: **+0.0209** log loss (95% CI +0.0147 to +0.0271). Not s
 
 ---
 
+## 下一轮
+
+每周二由 GitHub Actions 自动抓 `fixtures.csv` 并重算，下面是最近一次刷新的结果。
+模型概率只用赛前可得信息，初盘为去抽水后的 Pinnacle 价格。
+
+<!-- FIXTURES:START -->
+
+**最近一轮：2026-10-23 起，共 10 场，其中 10 场已开球待赛果。** 「初盘」为去抽水后的 Pinnacle 初盘（来源 `PPH+PPD+PPA`）。
+
+| 开球 | 对阵 | 模型 主/平/客 | 初盘 主/平/客 | 倾向 |
+| --- | --- | --- | --- | --- |
+| 10-23 20:00 | Ipswich v Nott'm Forest | 0.33 / 0.26 / 0.41 | 0.31 / 0.28 / 0.41 | A 41% |
+| 10-24 12:30 | Aston Villa v Man City | 0.21 / 0.26 / 0.53 | 0.20 / 0.21 / 0.59 | A 53% |
+| 10-24 15:00 | Arsenal v Everton | 0.65 / 0.22 / 0.13 | 0.66 / 0.21 / 0.13 | H 65% |
+| 10-24 15:00 | Coventry v Fulham | 0.36 / 0.28 / 0.36 | 0.30 / 0.28 / 0.42 | H 36% |
+| 10-24 17:30 | Chelsea v Tottenham | 0.54 / 0.25 / 0.20 | 0.56 / 0.23 / 0.21 | H 54% |
+| 10-25 14:00 | Crystal Palace v Newcastle | 0.38 / 0.27 / 0.35 | 0.31 / 0.27 / 0.42 | H 38% |
+| 10-25 14:00 | Hull v Brentford | 0.38 / 0.27 / 0.34 | 0.20 / 0.25 / 0.56 | H 38% |
+| 10-25 14:00 | Liverpool v Brighton | 0.45 / 0.24 / 0.30 | 0.45 / 0.25 / 0.30 | H 45% |
+| 10-25 14:00 | Man United v Bournemouth | 0.49 / 0.26 / 0.25 | 0.44 / 0.26 / 0.30 | H 49% |
+| 10-25 16:30 | Sunderland v Leeds | 0.38 / 0.26 / 0.36 | 0.31 / 0.30 / 0.39 | H 38% |
+
+
+![下一轮](reports/next_round.png)
+
+<!-- FIXTURES:END -->
+
+---
+
 ## 校准
 
 ![校准曲线](reports/calibration.png)
@@ -129,12 +158,13 @@ python -m venv .venv && . .venv/bin/activate     # Windows: .venv\Scripts\activa
 pip install -e ".[dev]"
 
 # 2. 拉数据 → 建特征 → 回测 → 出图
-plpred fetch          # 13 个赛季的 CSV 落到 data/raw/
+plpred fetch          # 13 个赛季的 CSV + 下一轮赛程落到 data/raw/
 plpred build          # 生成 data/processed/features.parquet
 plpred backtest       # walk-forward，约 10 秒，打印排行榜
 plpred report         # 图表 + docs/index.html + 自动回填本 README 的结果块
 
 # 3. 常用小工具
+plpred fixtures --save              # 下一轮逐场预测（模型 vs 初盘）
 plpred predict Arsenal Liverpool    # 单场概率 + 期望进球 + 最可能比分
 plpred simulate --sims 20000        # 剩余赛程模拟 2 万次
 plpred value --min-edge 0.05        # 附录 B：平注价值探针
@@ -176,18 +206,19 @@ most likely scorelines:
 ```text
 pl-predictor/
 ├─ src/plpred/
-│  ├─ ingest/        # football-data.co.uk 下载与列名自适应解析
+│  ├─ ingest/        # 赛果与赛程下载、列名自适应解析
 │  ├─ features/      # Elo、滚动状态（严格滞后）
 │  ├─ models/        # base_rates / elo_logit / dixon_coles / gbdt / blend
 │  ├─ eval/          # walk_forward、metrics、calibration
+│  ├─ forecast.py    # 下一轮逐场预测 + 已赛场次的命中记录
 │  ├─ simulate.py    # 剩余赛程蒙特卡洛
 │  ├─ plots.py       # 全部图表
 │  ├─ report.py      # 榜单、README 回填、单文件 HTML 看板
 │  └─ cli.py         # plpred 命令
-├─ tests/            # 29 个测试，重点是防泄漏
+├─ tests/            # 39 个测试，重点是防泄漏
 ├─ reports/          # 生成的图表与 CSV（已入库，方便直接看）
 ├─ docs/index.html   # 自包含看板，可直接开 GitHub Pages
-└─ .github/workflows/weekly.yml   # 每周自动更新
+└─ .github/workflows/weekly.yml   # 每周自动抓赛程并重算
 ```
 
 ---
@@ -227,6 +258,7 @@ pl-predictor/
 - [ ] 接入 Understat xG（2014 起覆盖），做特征消融实验
 - [ ] 增加大小球 2.5 与亚盘两个市场，检验"结构模型在派生市场上是否更有优势"
 - [ ] 用 Diebold-Mariano 替代/补充 bootstrap 检验
+- [ ] C 阶段：把看板升级为可交互页（选两队出概率 + 比分热力图），优先 HF Space
 - [ ] 把 `docs/index.html` 拆出赛季历史页
 
 ---

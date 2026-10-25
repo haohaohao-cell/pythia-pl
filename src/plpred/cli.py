@@ -12,13 +12,16 @@ from .config import REPORTS_DIR, season_start_year, season_label
 
 
 def _cmd_fetch(args: argparse.Namespace) -> None:
-    from .ingest.football_data import download_season
     from .config import SEASON_CODES
+    from .ingest.fixtures_feed import download_fixtures
+    from .ingest.football_data import download_season
 
     for season, code in SEASON_CODES.items():
         path = download_season(code, force=args.force)
         print(f"  {season}  {path.name}  {path.stat().st_size / 1024:.0f} KB")
-    print(f"fetched {len(SEASON_CODES)} seasons")
+    fixtures = download_fixtures(force=args.force)
+    print(f"  next round  {fixtures.name}  {fixtures.stat().st_size / 1024:.0f} KB")
+    print(f"fetched {len(SEASON_CODES)} seasons + 1 fixture feed")
 
 
 def _cmd_build(args: argparse.Namespace) -> None:
@@ -145,6 +148,37 @@ def _cmd_value(args: argparse.Namespace) -> None:
         print(table[["season", "bets", "roi", "profit", "hit_rate", "avg_edge", "clv"]].round(3).to_string(index=False))
 
 
+def _cmd_fixtures(args: argparse.Namespace) -> None:
+    from .dataset import load_dataset
+    from .forecast import hit_rate, next_round
+    from .ingest.fixtures_feed import load_fixtures
+    from .teams import en_name
+
+    features = load_dataset()
+    fixtures = load_fixtures(force=args.refresh)
+    forecast = next_round(features, fixtures)
+    if forecast.empty:
+        print("no upcoming fixtures in the feed")
+        return
+
+    view = forecast.assign(
+        fixture=[f"{en_name(h)} v {en_name(a)}" for h, a in zip(forecast["home"], forecast["away"])],
+        kickoff=forecast["kickoff"].dt.strftime("%a %d %b %H:%M"),
+    )
+    print()
+    print(view[["kickoff", "fixture", "p_home", "p_draw", "p_away",
+                "mkt_home", "mkt_draw", "mkt_away", "pick", "pick_prob", "status"]]
+          .round(3).to_string(index=False))
+    stats = hit_rate(forecast)
+    if stats["n"]:
+        print(f"\nplayed so far: {stats['hits']}/{stats['n']} correct ({stats['rate']:.0%})")
+    if args.save:
+        from .config import REPORTS_DIR
+        path = REPORTS_DIR / "fixtures_forecast.csv"
+        forecast.to_csv(path, index=False)
+        print(f"saved {path}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="plpred", description="Premier League forecast benchmark")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -170,6 +204,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("home")
     p.add_argument("away")
     p.set_defaults(func=_cmd_predict)
+
+    p = sub.add_parser("fixtures", help="forecast the next round from the fixtures feed")
+    p.add_argument("--refresh", action="store_true", help="re-download fixtures.csv")
+    p.add_argument("--save", action="store_true", help="write reports/fixtures_forecast.csv")
+    p.set_defaults(func=_cmd_fixtures)
 
     p = sub.add_parser("simulate", help="Monte Carlo the rest of a season")
     p.add_argument("--season", default=None)

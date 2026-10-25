@@ -264,7 +264,7 @@ def simulation_plot(sim: pd.DataFrame, current_points: pd.Series, outdir: Path |
 
 
 def season_bars(preds: pd.DataFrame, outdir: Path | None = None) -> Path:
-    """Log loss per season for the three headline models, in small multiples."""
+    """Log loss per season for the five headline models."""
     _style()
     models = ["market", "elo_logit", "blend", "dixon_coles", "gbdt"]
     seasons = sorted(preds["season"].unique())
@@ -289,3 +289,55 @@ def season_bars(preds: pd.DataFrame, outdir: Path | None = None) -> Path:
     ax.set_title("Season by season: the gap to the market is consistent, not lucky")
     ax.legend(ncol=5, fontsize=7, loc="upper center", bbox_to_anchor=(0.5, -0.30))
     return _save(fig, "season_logloss.png", outdir)
+
+
+OUTCOME_COLORS = {"H": "#2563eb", "D": "#9ca3af", "A": "#f59e0b"}
+
+
+def fixtures_chart(forecast: pd.DataFrame, outdir: Path | None = None) -> Path:
+    """Model vs market for the next round, as paired stacked bars."""
+    from matplotlib.patches import Patch
+
+    _style()
+    df = forecast.reset_index(drop=True)
+    n = len(df)
+    fig, ax = plt.subplots(figsize=(7.4, 0.55 * n + 1.7))
+    y_model = np.arange(n) * 2.0
+    y_market = y_model + 1.0
+
+    for offset, cols, alpha in (
+        (y_model, ("p_home", "p_draw", "p_away"), 1.0),
+        (y_market, ("mkt_home", "mkt_draw", "mkt_away"), 0.42),
+    ):
+        left = np.zeros(n)
+        for code, col in zip(("H", "D", "A"), cols):
+            values = df[col].to_numpy(float)
+            values = np.where(np.isfinite(values), values, 0.0)
+            ax.barh(offset, values, left=left, height=0.70,
+                    color=OUTCOME_COLORS[code], alpha=alpha,
+                    edgecolor="white", linewidth=0.5)
+            left += values
+
+    for i in range(n):
+        ax.text(0.006, y_model[i], "M", va="center", ha="left", fontsize=5.6, color="white")
+        ax.text(0.006, y_market[i], "P", va="center", ha="left", fontsize=5.6, color="#111827")
+
+    labels = []
+    for row in df.itertuples(index=False):
+        mark = ""
+        if row.status == "played":
+            mark = " ✅" if row.hit else " ❌"
+        labels.append(f"{en_name(row.home)} v {en_name(row.away)}{mark}")
+
+    ax.set_yticks(y_model + 0.5)
+    ax.set_yticklabels(labels, fontsize=7.4)
+    ax.invert_yaxis()
+    ax.set_xlim(0, 1)
+    ax.set_xlabel("Probability")
+    ax.grid(axis="y", visible=False)
+    ax.set_title("M = model · P = de-vigged opening price", fontsize=9.5)
+    ax.legend(
+        handles=[Patch(color=OUTCOME_COLORS[c], label=lab) for c, lab in (("H", "Home"), ("D", "Draw"), ("A", "Away"))],
+        ncol=3, fontsize=7.5, loc="upper center", bbox_to_anchor=(0.5, -0.07),
+    )
+    return _save(fig, "next_round.png", outdir)

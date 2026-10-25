@@ -20,6 +20,8 @@ from .eval.walk_forward import (
     season_table,
     test_seasons_from,
 )
+from .forecast import next_round
+from .ingest.fixtures_feed import load_fixtures
 from .models.base import outcome_index
 from .models.dixon_coles import DixonColes
 from .models.blend import Blend
@@ -39,6 +41,8 @@ MODEL_DISPLAY = {
 
 README_START = "<!-- RESULTS:START -->"
 README_END = "<!-- RESULTS:END -->"
+FIXTURES_START = "<!-- FIXTURES:START -->"
+FIXTURES_END = "<!-- FIXTURES:END -->"
 
 
 def get_predictions(*, refresh: bool = False) -> pd.DataFrame:
@@ -167,7 +171,50 @@ def _b64(path: Path) -> str:
     return base64.b64encode(path.read_bytes()).decode("ascii")
 
 
-def write_dashboard(stats: dict, preds: pd.DataFrame, sim: pd.DataFrame, figures: dict[str, Path]) -> Path:
+def _next_round_html(forecast: pd.DataFrame | None, figure: Path | None) -> str:
+    if forecast is None or forecast.empty:
+        return ""
+    rows = []
+    for row in forecast.itertuples(index=False):
+        kickoff = pd.Timestamp(row.kickoff).strftime("%a %d %b, %H:%M")
+        market = (f"{row.mkt_home:.2f} / {row.mkt_draw:.2f} / {row.mkt_away:.2f}"
+                  if np.isfinite(row.mkt_home) else "—")
+        if row.status == "played":
+            result = f"{row.score} {row.result} {'✅' if row.hit else '❌'}"
+        elif row.status == "awaiting_result":
+            result = "awaiting result"
+        else:
+            result = "—"
+        rows.append(
+            f"<tr><td>{kickoff}</td><td>{en_name(row.home)} v {en_name(row.away)}</td>"
+            f"<td>{row.p_home:.2f} / {row.p_draw:.2f} / {row.p_away:.2f}</td>"
+            f"<td>{market}</td><td>{row.pick} {row.pick_prob:.0%}</td><td>{result}</td></tr>"
+        )
+    image = (f'<figure><img alt="next round" src="data:image/png;base64,{_b64(figure)}">'
+             f"<figcaption>M = model, P = de-vigged opening price. Model / price probabilities "
+             f"are home / draw / away.</figcaption></figure>") if figure and figure.exists() else ""
+    return f"""<h2>Next round</h2>
+<p class="lede">The weekly artefact: each fixture forecast by the fused model and compared with the
+de-vigged opening price. Fixtures already played keep their result in the last column, so the
+page doubles as a running account of the model's calls.</p>
+{image}
+<table>
+<thead><tr><th>Kick-off</th><th>Fixture</th><th>Model H / D / A</th><th>Price H / D / A</th><th>Pick</th><th>Result</th></tr></thead>
+<tbody>
+{"".join(rows)}
+</tbody>
+</table>
+"""
+
+
+def write_dashboard(
+    stats: dict,
+    preds: pd.DataFrame,
+    sim: pd.DataFrame,
+    figures: dict[str, Path],
+    forecast: pd.DataFrame | None = None,
+    fixtures_figure: Path | None = None,
+) -> Path:
     lb = leaderboard(preds)
     lb["model"] = lb["model"].map(lambda m: MODEL_DISPLAY.get(m, m))
     lb_view = lb.copy()
@@ -252,6 +299,8 @@ on exactly the same matches. The model does not beat the market, and the project
 </tbody>
 </table>
 
+{_next_round_html(forecast, fixtures_figure)}
+
 {figures_html}
 
 <h2>Projected final table — {season}</h2>
@@ -321,32 +370,137 @@ def generate(*, refresh: bool = True, n_sims: int = 20_000, inject_readme: bool 
     latest = latest_predictions(preds, features)
     latest.to_csv(REPORTS_DIR / "latest_predictions.csv", index=False)
 
+    # Weekly artefact: the next round, forecast live and compared with the price.
+    live_models = _live_models(features, finals, preds)
+    fixtures = load_fixtures()
+    forecast = next_round(features, fixtures, models=live_models) if not fixtures.empty else pd.DataFrame()
+    if not forecast.empty:
+        forecast.to_csv(REPORTS_DIR / "fixtures_forecast.csv", index=False)
+        fixtures_figure = plots.fixtures_chart(forecast)
+        fixtures_blocks = {
+            "README.md": fixtures_markdown(forecast, lang="zh"),
+            "README.en.md": fixtures_markdown(forecast, lang="en"),
+        }
+        (REPORTS_DIR / "fixtures_block.md").write_text(fixtures_blocks["README.md"], encoding="utf-8")
+    else:
+        fixtures_figure = None
+        fixtures_blocks = {"README.md": "_赛程源暂时没有可预测的比赛。_",
+                           "README.en.md": "_No forecastable fixtures in the feed._"}
+
     block = results_markdown(preds, stats, sim)
     (REPORTS_DIR / "results_block.md").write_text(block, encoding="utf-8")
 
-    dashboard = write_dashboard(stats, preds, sim, figures)
+    dashboard = write_dashboard(stats, preds, sim, figures, forecast, fixtures_figure)
 
     if inject_readme:
-        for name in ("README.md", "README.en.md"):
+        for name, fixtures_block in fixtures_blocks.items():
             inject_readme_block(block, ROOT / name)
+            inject_block(fixtures_block, ROOT / name, FIXTURES_START, FIXTURES_END)
 
     return {
         "leaderboard": lb,
         "stats": stats,
         "simulation": sim,
         "figures": figures,
+        "forecast": forecast,
         "dashboard": dashboard,
     }
 
 
+def _live_models(features: pd.DataFrame, finals: dict, preds: pd.DataFrame) -> dict:
+    """Join the already-fitted models with the blend weights the backtest would use.
+
+    The weights are tuned on out-of-sample forecasts from the two preceding
+    seasons and shrunk toward equal — the same rule the walk-forward applies,
+    rather than a fresh fit on the season being forecast.
+    """
+    from .models.blend import Blend, tune_weights
+
+    components = ("elo_logit", "dixon_coles", "gbdt")
+    wide = preds.pivot_table(index="match_id", columns="model", values=["p_home", "p_draw", "p_away"])
+    meta = preds.drop_duplicates("match_id").set_index("match_id")[["season", "ftr"]]
+    wide = pd.concat([wide, meta], axis=1)
+
+    seasons = sorted(wide["season"].unique())[-2:]
+    history = wide.loc[wide["season"].isin(seasons)]
+    if len(history) >= 200:
+        probs = {
+            n: np.column_stack([
+                history[("p_home", n)], history[("p_draw", n)], history[("p_away", n)],
+            ])
+            for n in components
+        }
+        y = history["ftr"].map({"H": 0, "D": 1, "A": 2}).to_numpy(dtype=int)
+        tuned = tune_weights(probs, y)
+        equal = 1.0 / len(components)
+        weights = {n: 0.5 * equal + 0.5 * tuned[n] for n in components}
+        total = sum(weights.values())
+        weights = [weights[n] / total for n in components]
+    else:
+        weights = None
+
+    blend = Blend([finals["elo_logit"], finals["dixon_coles"], finals["gbdt"]], weights=weights)
+    if weights is None:
+        blend.weights = [1 / 3, 1 / 3, 1 / 3]
+
+    return {
+        "elo_logit": finals["elo_logit"],
+        "dixon_coles": finals["dixon_coles"],
+        "gbdt": finals["gbdt"],
+        "blend": blend,
+    }
+
+
+def fixtures_markdown(forecast: pd.DataFrame, *, lang: str = "zh") -> str:
+    """README block for the next round, in either language."""
+    from .forecast import hit_rate, round_markdown
+
+    if forecast.empty:
+        return "_No forecastable fixtures in the feed._" if lang == "en" else "_赛程源暂时没有可预测的比赛。_"
+
+    pending = forecast.loc[forecast["status"] != "played"]
+    played = forecast.loc[forecast["status"] == "played"]
+    stats = hit_rate(forecast)
+
+    lines = []
+    if not pending.empty:
+        first = pending["kickoff"].min()
+        waiting = int((pending["status"] == "awaiting_result").sum())
+        if lang == "en":
+            note = f", {waiting} of them already kicked off and waiting for a result" if waiting else ""
+            lines.append(f"**Round of {first:%Y-%m-%d}: {len(pending)} fixtures{note}.** "
+                         f"Prices are de-vigged Pinnacle openers (`{pending['odds_src'].iloc[0] or '—'}`).\n")
+        else:
+            note = f"，其中 {waiting} 场已开球待赛果" if waiting else ""
+            lines.append(f"**最近一轮：{first:%Y-%m-%d} 起，共 {len(pending)} 场{note}。** "
+                         f"「初盘」为去抽水后的 Pinnacle 初盘（来源 `{pending['odds_src'].iloc[0] or '—'}`）。\n")
+
+    lines.append(round_markdown(pending if not pending.empty else forecast, lang=lang))
+    if stats["n"]:
+        if lang == "en":
+            lines.append(f"\nSettled so far: {stats['hits']}/{stats['n']} calls correct ({stats['rate']:.0%}).")
+        else:
+            lines.append(f"\n已收录赛果 {stats['n']} 场，模型命中 {stats['hits']} 场（{stats['rate']:.0%}）。")
+    if not played.empty:
+        lines.append("\nSettled:\n" if lang == "en" else "\n已赛场次：\n")
+        lines.append(round_markdown(played, lang=lang))
+    lines.append("\n![下一轮](reports/next_round.png)" if lang == "zh" else "\n![Next round](reports/next_round.png)")
+    return "\n".join(lines)
+
+
 def inject_readme_block(block: str, path: Path | None = None) -> bool:
-    path = Path(path or ROOT / "README.md")
+    return inject_block(block, path or ROOT / "README.md", README_START, README_END)
+
+
+def inject_block(block: str, path: Path, start: str, end: str) -> bool:
+    """Replace the content between two HTML comment markers."""
+    path = Path(path)
     if not path.exists():
         return False
     text = path.read_text(encoding="utf-8")
-    if README_START not in text or README_END not in text:
+    if start not in text or end not in text:
         return False
-    head, rest = text.split(README_START, 1)
-    _, tail = rest.split(README_END, 1)
-    path.write_text(f"{head}{README_START}\n\n{block}\n\n{README_END}{tail}", encoding="utf-8")
+    head, rest = text.split(start, 1)
+    _, tail = rest.split(end, 1)
+    path.write_text(f"{head}{start}\n\n{block.strip()}\n\n{end}{tail}", encoding="utf-8")
     return True
