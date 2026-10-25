@@ -106,6 +106,48 @@ tail. That is the usual cost of treating "draw" as an independent class.
 
 ---
 
+## Calibration: the gap is information, not confidence
+
+The obvious challenge: **did you skip calibration before drawing conclusions?**
+
+Method: one temperature per model (`pᵢ → pᵢ^(1/T)`, renormalised), fitted on the
+**previous** season's out-of-sample forecasts — never on the season being scored.
+
+<!-- CALIB:START -->
+
+| Model | Log loss | With temperature | Delta | Median T |
+| --- | --- | --- | --- | --- |
+| Blend (Elo + DC + GBDT) | 0.9767 | 0.9798 | +0.0031 | 1.00 |
+| Elo + softmax | 0.9788 | 0.9805 | +0.0017 | 1.00 |
+| Dixon-Coles | 0.9941 | 1.0030 | +0.0089 | 1.03 |
+| Gradient boosting | 0.9911 | 0.9906 | -0.0006 | 1.14 |
+
+Temperatures are fitted on the **previous** season's out-of-sample forecasts, never on the season being scored. The median T moves between 1.00 and 1.14: blend and Elo stay at 1.00, and the only genuinely over-confident model is gradient boosting (T = 1.14, which does recover 0.0006) — but it is too weak for that to matter. **No model gets a meaningful calibration improvement.**
+
+**Brier decomposition** (Murphy): `Brier = reliability − resolution + uncertainty`
+
+| Forecast | Reliability ↓ | Resolution ↑ | Brier |
+| --- | --- | --- | --- |
+| Closing line | 0.0012 | 0.0786 | 0.5681 |
+| Blend | 0.0016 | 0.0661 | 0.5811 |
+| Blend + temperature | 0.0014 | 0.0628 | 0.5841 |
+
+Read it as: reliability is nearly identical (0.0016 vs 0.0012) and almost the whole gap is **resolution** (0.0661 vs 0.0786). The model is not over-confident, it simply knows less. That is why a temperature cannot close the gap, and why the only meaningful direction is more information (xG, injuries, European fixtures), not sharper tuning.
+
+![Calibration study](reports/calibration_study.png)
+
+<!-- CALIB:END -->
+
+Both tables point the same way: the temperature barely moves (median T = 1.00), because
+the model was never systematically over-confident. The Brier decomposition then shows
+that **reliability is nearly identical** and the whole gap is resolution — the model does
+not report probabilities badly, it just knows less.
+
+That is why tuning cannot close the gap, and why the roadmap is about adding information
+(xG, injuries, European fixture load) rather than shaving 0.001 off the model structure.
+
+---
+
 ## Why this is not another accuracy-chasing repo
 
 | Common practice | Here |

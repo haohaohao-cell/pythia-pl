@@ -22,6 +22,7 @@ from .eval.walk_forward import (
 )
 from .forecast import next_round
 from .ingest.fixtures_feed import load_fixtures
+from .models.calibration import calibrate_by_season
 from .models.base import outcome_index
 from .models.dixon_coles import DixonColes
 from .models.blend import Blend
@@ -43,6 +44,8 @@ README_START = "<!-- RESULTS:START -->"
 README_END = "<!-- RESULTS:END -->"
 FIXTURES_START = "<!-- FIXTURES:START -->"
 FIXTURES_END = "<!-- FIXTURES:END -->"
+CALIB_START = "<!-- CALIB:START -->"
+CALIB_END = "<!-- CALIB:END -->"
 
 
 def get_predictions(*, refresh: bool = False) -> pd.DataFrame:
@@ -333,6 +336,94 @@ added to points already banked.</p>
     return path
 
 
+def _decomposition_table(preds: pd.DataFrame) -> pd.DataFrame:
+    from .eval.decomposition import brier_decomposition
+    from .models.base import outcome_index
+
+    rows = []
+    for model in ("market", "blend", "blend+T"):
+        block = preds.loc[preds["model"] == model]
+        if block.empty:
+            continue
+        parts = brier_decomposition(block[["p_home", "p_draw", "p_away"]].to_numpy(), outcome_index(block))
+        rows.append({"model": model, **parts})
+    return pd.DataFrame(rows)
+
+
+def calibration_markdown(
+    lb_cal: pd.DataFrame,
+    decomposition: pd.DataFrame,
+    lambdas: dict,
+    *,
+    lang: str = "zh",
+) -> str:
+    """README block for the calibration study."""
+    zh = lang == "zh"
+    lookup = lb_cal.set_index("model")["log_loss"].to_dict()
+
+    lines = []
+    pairs = [("blend", "blend+T"), ("elo_logit", "elo_logit+T"),
+             ("dixon_coles", "dixon_coles+T"), ("gbdt", "gbdt+T")]
+    rows = []
+    for base, cal in pairs:
+        if base not in lookup or cal not in lookup:
+            continue
+        t_values = [t for (m, _), t in lambdas.items() if m == base]
+        t_median = float(np.median(t_values)) if t_values else 1.0
+        rows.append((MODEL_DISPLAY.get(base, base), lookup[base], lookup[cal], t_median))
+
+    header = ("| 模型 | log loss | + 温度 | 变化 | T 中位数 |" if zh
+              else "| Model | Log loss | With temperature | Delta | Median T |")
+    lines.append(header)
+    lines.append("| --- | --- | --- | --- | --- |")
+    for name, base_loss, cal_loss, t_median in rows:
+        lines.append(f"| {name} | {base_loss:.4f} | {cal_loss:.4f} | {cal_loss - base_loss:+.4f} | {t_median:.2f} |")
+
+    lines.append("")
+    if zh:
+        lines.append("温度在**上一季**的样本外预测上拟合，绝不接触被测赛季。T 中位数在 1.00–1.14 之间移动："
+                     "融合与 Elo 基本是 1.00，唯一偏乐观的是梯度提升（1.14，校准后确实降了 0.0006），"
+                     "但它的整体水平太差，校准救不回来。**没有模型的校准被温度明显改善。**")
+    else:
+        lines.append("Temperatures are fitted on the **previous** season's out-of-sample forecasts, never on the "
+                     "season being scored. The median T moves between 1.00 and 1.14: blend and Elo stay at 1.00, "
+                     "and the only genuinely over-confident model is gradient boosting (T = 1.14, which does "
+                     "recover 0.0006) — but it is too weak for that to matter. "
+                     "**No model gets a meaningful calibration improvement.**")
+
+    if not decomposition.empty:
+        lines.append("")
+        lines.append("**Brier 分解**（Murphy）：`Brier = 可靠性 − 分辨率 + 不确定性`" if zh
+                     else "**Brier decomposition** (Murphy): `Brier = reliability − resolution + uncertainty`")
+        lines.append("")
+        lines.append("| 预测 | 可靠性 ↓ | 分辨率 ↑ | Brier |" if zh
+                     else "| Forecast | Reliability ↓ | Resolution ↑ | Brier |")
+        lines.append("| --- | --- | --- | --- |")
+        names = {"market": "收盘价" if zh else "Closing line",
+                 "blend": "融合" if zh else "Blend",
+                 "blend+T": "融合 + 温度" if zh else "Blend + temperature"}
+        for row in decomposition.itertuples(index=False):
+            lines.append(f"| {names.get(row.model, row.model)} | {row.reliability:.4f} | "
+                         f"{row.resolution:.4f} | {row.brier:.4f} |")
+
+        if zh:
+            lines.append("")
+            lines.append("读法：两者的**可靠性几乎相同**（0.0016 对 0.0012），差距几乎全部来自**分辨率**"
+                         "（0.0661 对 0.0786）。也就是说，模型不是过度自信，而是**知道得更少**——"
+                         "它没有比庄家更差的校准，只有更少的信息。这解释了为什么温度校准救不了差距，"
+                         "也指出了唯一有意义的方向：加信息（xG、伤停、欧战赛程），而不是调概率。")
+        else:
+            lines.append("")
+            lines.append("Read it as: reliability is nearly identical (0.0016 vs 0.0012) and almost the whole gap "
+                         "is **resolution** (0.0661 vs 0.0786). The model is not over-confident, it simply knows "
+                         "less. That is why a temperature cannot close the gap, and why the only meaningful "
+                         "direction is more information (xG, injuries, European fixtures), not sharper tuning.")
+
+    lines.append("")
+    lines.append("![校准研究](reports/calibration_study.png)" if zh else "![Calibration study](reports/calibration_study.png)")
+    return "\n".join(lines)
+
+
 def generate(*, refresh: bool = True, n_sims: int = 20_000, inject_readme: bool = True) -> dict:
     from . import plots
 
@@ -344,6 +435,14 @@ def generate(*, refresh: bool = True, n_sims: int = 20_000, inject_readme: bool 
     lb.to_csv(REPORTS_DIR / "leaderboard.csv", index=False)
     season_table(preds).to_csv(REPORTS_DIR / "season_logloss.csv")
     preds.loc[preds["model"].isin(["blend", "market"])].to_csv(REPORTS_DIR / "predictions.csv", index=False)
+
+    # Calibration study: one temperature per model, fitted on the prior season,
+    # plus the Brier decomposition that explains where the gap actually comes from.
+    calibrated, lambdas = calibrate_by_season(preds)
+    lb_cal = leaderboard(calibrated)
+    lb_cal.to_csv(REPORTS_DIR / "calibration_study.csv", index=False)
+    decomposition = _decomposition_table(calibrated)
+    decomposition.to_csv(REPORTS_DIR / "brier_decomposition.csv", index=False)
 
     finals = fit_final(features)
     season = current_season(features)
@@ -370,6 +469,8 @@ def generate(*, refresh: bool = True, n_sims: int = 20_000, inject_readme: bool 
         "strength": (plots.strength_map(dc_live), "Dixon-Coles attack and defence parameters, fitted on the last two seasons."),
         "heatmap": (plots.score_heatmap(dc_live, heat_home, heat_away), f"Scoreline distribution for {en_name(heat_home)} vs {en_name(heat_away)}."),
         "simulation": (plots.simulation_plot(sample, points_now), "Projected final points, 20,000 simulations of the remaining fixtures."),
+        "calibration_study": (plots.calibration_study(lb_cal, decomposition),
+                              "A temperature does not close the gap; reliability vs resolution shows why."),
     }
 
     latest = latest_predictions(preds, features)
@@ -395,6 +496,12 @@ def generate(*, refresh: bool = True, n_sims: int = 20_000, inject_readme: bool 
     block = results_markdown(preds, stats, sim)
     (REPORTS_DIR / "results_block.md").write_text(block, encoding="utf-8")
 
+    calib_blocks = {
+        "README.md": calibration_markdown(lb_cal, decomposition, lambdas, lang="zh"),
+        "README.en.md": calibration_markdown(lb_cal, decomposition, lambdas, lang="en"),
+    }
+    (REPORTS_DIR / "calibration_block.md").write_text(calib_blocks["README.md"], encoding="utf-8")
+
     from . import explorer
 
     explorer_path = explorer.build(features, preds, forecast if not forecast.empty else None)
@@ -405,6 +512,7 @@ def generate(*, refresh: bool = True, n_sims: int = 20_000, inject_readme: bool 
         for name, fixtures_block in fixtures_blocks.items():
             inject_readme_block(block, ROOT / name)
             inject_block(fixtures_block, ROOT / name, FIXTURES_START, FIXTURES_END)
+            inject_block(calib_blocks[name], ROOT / name, CALIB_START, CALIB_END)
 
     return {
         "leaderboard": lb,
@@ -414,6 +522,7 @@ def generate(*, refresh: bool = True, n_sims: int = 20_000, inject_readme: bool 
         "forecast": forecast,
         "dashboard": dashboard,
         "explorer": explorer_path,
+        "calibration": decomposition,
     }
 
 

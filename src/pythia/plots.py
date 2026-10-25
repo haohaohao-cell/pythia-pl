@@ -294,6 +294,40 @@ def season_bars(preds: pd.DataFrame, outdir: Path | None = None) -> Path:
 OUTCOME_COLORS = {"H": "#2563eb", "D": "#9ca3af", "A": "#f59e0b"}
 
 
+def calibration_study(lb: pd.DataFrame, decomp: pd.DataFrame, outdir: Path | None = None) -> Path:
+    """Left: does a temperature fix anything? Right: reliability vs resolution."""
+    _style()
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8.8, 3.3))
+
+    order = ["market", "blend", "blend+T"]
+    labels = {"market": "Closing line", "blend": "Blend", "blend+T": "Blend + temperature"}
+    present = [m for m in order if m in set(lb["model"])]
+    # barh draws the first row at the bottom: ascending values put the best on top.
+    present.sort(key=lambda m: -float(lb.loc[lb["model"] == m, "log_loss"].iloc[0]))
+    values = [float(lb.loc[lb["model"] == m, "log_loss"].iloc[0]) for m in present]
+    colors = ["#93c5fd" if m.endswith("+T") else COLORS.get(m, "#94a3b8") for m in present]
+    bars = ax1.barh([labels[m] for m in present], values, color=colors[: len(present)], height=0.55)
+    for bar, value in zip(bars, values):
+        ax1.text(value + 0.0006, bar.get_y() + bar.get_height() / 2, f"{value:.4f}",
+                 va="center", fontsize=8)
+    ax1.set_xlim(min(values) - 0.004, max(values) + 0.004)
+    ax1.set_xlabel("Log loss (lower is better)")
+    ax1.set_title("A temperature does not close the gap", fontsize=9.5)
+
+    for row in decomp.itertuples(index=False):
+        colour = COLORS.get(str(row.model).replace("+T", ""), "#94a3b8")
+        marker = "D" if "+T" in str(row.model) else "o"
+        ax2.scatter(row.reliability, row.resolution, s=70, color=colour, marker=marker, zorder=3)
+        ax2.annotate(labels.get(row.model, row.model), (row.reliability, row.resolution),
+                     xytext=(6, -3), textcoords="offset points", fontsize=7.5)
+    ax2.set_xlabel("Reliability (lower = better calibrated)")
+    ax2.set_ylabel("Resolution (higher = more information)")
+    ax2.set_title("Same calibration, less information", fontsize=9.5)
+    ax2.margins(x=0.45, y=0.35)
+
+    return _save(fig, "calibration_study.png", outdir)
+
+
 def fixtures_chart(forecast: pd.DataFrame, outdir: Path | None = None) -> Path:
     """Model vs market for the next round, as paired stacked bars."""
     from matplotlib.patches import Patch
