@@ -298,6 +298,29 @@ def _cmd_prior(args: argparse.Namespace) -> None:
     print(f"saved {REPORTS_DIR / 'prior_study.csv'} and reports/prior_ladder.png")
 
 
+def _cmd_ledger(args: argparse.Namespace) -> None:
+    from .config import REPORTS_DIR
+    from .dataset import load_dataset
+    from .eval.ledger import build_ledger, ledger_markdown
+    from .report import get_predictions
+
+    features = load_dataset()
+    season = args.season or str(features["season"].max())
+    preds = get_predictions()
+    ledger = build_ledger(preds, season=season)
+    if ledger.empty:
+        print(f"no settled matches for {season}")
+        return
+
+    print(ledger.round(4).to_string(index=False))
+    print()
+    print(ledger_markdown(ledger, season))
+
+    path = REPORTS_DIR / f"ledger_{season}.csv"
+    ledger.to_csv(path, index=False)
+    print(f"\nsaved {path}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="pythia", description="Premier League forecast benchmark")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -344,6 +367,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("prior", help="how much of the market can the model replicate?")
     p.set_defaults(func=_cmd_prior)
+
+    p = sub.add_parser("ledger", help="running season account: model vs closing line")
+    p.add_argument("--season", default=None)
+    p.set_defaults(func=_cmd_ledger)
 
     p = sub.add_parser("fpl", help="squad availability snapshot from the FPL API")
     p.add_argument("--snapshot", action="store_true", help="commit today's team-level snapshot")

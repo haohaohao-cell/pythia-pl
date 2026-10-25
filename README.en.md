@@ -135,6 +135,35 @@ information; the price column is the de-vigged Pinnacle opening line.
 
 ---
 
+## Season ledger
+
+"Every forecast is a claim" is only meaningful if the claims are tallied. Each refresh
+records the settled matches — hits and running log loss — next to the closing line, week by
+week. It is the one artefact in this repository that gains value with time.
+
+<!-- LEDGER:START -->
+
+**2026-27 ledger: 70 matches settled.** Model 34 correct (48.6%), closing line 35 (50.0%); running log loss 1.0167 vs 1.0054.
+
+| Week | Matches | Model hits | Market hits | Model LL | Market LL |
+| --- | --- | --- | --- | --- | --- |
+| 2026-W34 | 9 | 5 | 5 | 0.9307 | 0.9922 |
+| 2026-W35 | 10 | 6 | 5 | 0.9703 | 1.0024 |
+| 2026-W36 | 11 | 4 | 4 | 1.0025 | 1.0059 |
+| 2026-W37 | 9 | 3 | 3 | 1.0475 | 1.0513 |
+| 2026-W38 | 11 | 6 | 6 | 1.0405 | 1.0553 |
+| 2026-W41 | 9 | 4 | 4 | 1.0421 | 1.0470 |
+| 2026-W42 | 10 | 5 | 7 | 1.0193 | 1.0128 |
+| 2026-W43 | 1 | 1 | 1 | 1.0167 | 1.0054 |
+
+<!-- LEDGER:END -->
+
+> A few dozen matches prove nothing: 48.6% versus 50.0% over 70 games is well inside the
+> noise. What matters is the running log loss after a few hundred — the number luck cannot
+> fake for long.
+
+---
+
 ## Calibration
 
 ![Calibration](reports/calibration.png)
@@ -167,7 +196,7 @@ Temperatures are fitted on the **previous** season's out-of-sample forecasts, ne
 | Forecast | Reliability ↓ | Resolution ↑ | Brier |
 | --- | --- | --- | --- |
 | Closing line | 0.0012 | 0.0786 | 0.5681 |
-| Blend | 0.0016 | 0.0660 | 0.5812 |
+| Blend | 0.0016 | 0.0661 | 0.5811 |
 | Blend + temperature | 0.0014 | 0.0628 | 0.5841 |
 
 Read it as: reliability is nearly identical (0.0016 vs 0.0012) and almost the whole gap is **resolution** (0.0661 vs 0.0786). The model is not over-confident, it simply knows less. That is why a temperature cannot close the gap, and why the only meaningful direction is more information (xG, injuries, European fixtures), not sharper tuning.

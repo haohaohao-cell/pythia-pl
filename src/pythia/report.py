@@ -46,6 +46,8 @@ FIXTURES_START = "<!-- FIXTURES:START -->"
 FIXTURES_END = "<!-- FIXTURES:END -->"
 CALIB_START = "<!-- CALIB:START -->"
 CALIB_END = "<!-- CALIB:END -->"
+LEDGER_START = "<!-- LEDGER:START -->"
+LEDGER_END = "<!-- LEDGER:END -->"
 
 
 def get_predictions(*, refresh: bool = False) -> pd.DataFrame:
@@ -502,6 +504,16 @@ def generate(*, refresh: bool = True, n_sims: int = 20_000, inject_readme: bool 
     }
     (REPORTS_DIR / "calibration_block.md").write_text(calib_blocks["README.md"], encoding="utf-8")
 
+    from .eval.ledger import build_ledger, ledger_markdown
+
+    ledger = build_ledger(preds, season=season)
+    if not ledger.empty:
+        ledger.to_csv(REPORTS_DIR / f"ledger_{season}.csv", index=False)
+    ledger_blocks = {
+        "README.md": ledger_markdown(ledger, season, lang="zh"),
+        "README.en.md": ledger_markdown(ledger, season, lang="en"),
+    }
+
     from . import explorer
 
     explorer_path = explorer.build(features, preds, forecast if not forecast.empty else None)
@@ -513,9 +525,11 @@ def generate(*, refresh: bool = True, n_sims: int = 20_000, inject_readme: bool 
             inject_readme_block(block, ROOT / name)
             inject_block(fixtures_block, ROOT / name, FIXTURES_START, FIXTURES_END)
             inject_block(calib_blocks[name], ROOT / name, CALIB_START, CALIB_END)
+            inject_block(ledger_blocks[name], ROOT / name, LEDGER_START, LEDGER_END)
 
     return {
         "leaderboard": lb,
+        "ledger": ledger,
         "stats": stats,
         "simulation": sim,
         "figures": figures,
