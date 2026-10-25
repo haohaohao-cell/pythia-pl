@@ -2,6 +2,9 @@
 
 > 这是一篇待发布的长文草稿。所有数字都来自仓库里可复现的回测，配图在 `reports/`。
 > 仓库：[github.com/haohaohao-cell/pythia-pl](https://github.com/haohaohao-cell/pythia-pl)
+>
+> 平台版：[知乎版（纯文本，可直接粘贴）](POST_ZHIHU.txt) ·
+> [掘金版（Markdown，含代码与表格）](POST_JUEJIN.md)
 
 在 GitHub 上搜"英超预测"，你会看到一堆 README 写着"准确率 62%"。我做过一个，后来把它删了。
 因为我发现，那些数字绝大多数是三类错误的产物：随机切分造成的数据泄漏、把赛后数据当赛前特征、
