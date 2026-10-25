@@ -30,7 +30,27 @@ def test_only_premier_league_rows_are_kept() -> None:
 
 def test_kickoff_combines_date_and_time() -> None:
     out = parse_fixtures(_raw())
-    assert out["kickoff"].iloc[0] == pd.Timestamp("2026-10-24 12:30")
+    kickoff = out["kickoff"].iloc[0]
+    assert kickoff.hour == 12 and kickoff.minute == 30
+    assert kickoff.date() == pd.Timestamp("2026-10-24").date()
+
+
+def test_kickoff_is_uk_local_time() -> None:
+    """BST on 24 Oct 2026, GMT from the 25th — the DST switch that broke the clock check."""
+    out = parse_fixtures(_raw())
+    bst = out["kickoff"].iloc[0]
+    gmt = out["kickoff"].iloc[1]
+    assert bst.utcoffset() == pd.Timedelta(hours=1)
+    assert gmt.utcoffset() == pd.Timedelta(0)
+
+
+def test_kickoff_compares_correctly_from_another_timezone() -> None:
+    """The same instant must be judged 'past' regardless of the machine's zone."""
+    out = parse_fixtures(_raw())
+    kickoff = out["kickoff"].iloc[0]
+    later = kickoff.tz_convert("Asia/Shanghai") + pd.Timedelta(minutes=5)
+    assert kickoff < later
+    assert (kickoff + pd.Timedelta(minutes=5)) > kickoff
 
 
 def test_missing_time_defaults_to_afternoon() -> None:

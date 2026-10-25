@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 from .fixtures import fixture_row
-from .ingest.fixtures_feed import load_fixtures
+from .ingest.fixtures_feed import UK_TZ, load_fixtures
 from .models.base import outcome_index
 from .models.blend import Blend
 from .models.dixon_coles import DixonColes
@@ -50,9 +50,18 @@ def next_round(
     if fixtures.empty:
         return pd.DataFrame()
 
-    now = pd.Timestamp.now() if now is None else pd.Timestamp(now)
+    # Kick-offs are tz-aware (Europe/London); comparing them with the machine
+    # clock is what produced the "everything already kicked off" bug on a
+    # UTC+8 laptop while CI said otherwise.
+    if now is None:
+        now = pd.Timestamp.now(tz=UK_TZ)
+    else:
+        now = pd.Timestamp(now)
+        now = now.tz_localize(UK_TZ) if now.tzinfo is None else now.tz_convert(UK_TZ)
+
     models = models or default_models(features)
     played = _played_lookup(features)
+    played["date"] = played["date"].dt.tz_localize(UK_TZ)
     rows = []
 
     for fixture in fixtures.itertuples(index=False):
@@ -60,7 +69,7 @@ def next_round(
             frame = fixture_row(features, fixture.home, fixture.away)
         except KeyError:
             continue
-        frame.loc[0, "date"] = fixture.kickoff
+        frame.loc[0, "date"] = fixture.kickoff.tz_localize(None)
 
         probs = {name: np.asarray(model.predict_proba(frame))[0] for name, model in models.items()}
         blend = probs["blend"] / probs["blend"].sum()

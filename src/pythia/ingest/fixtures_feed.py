@@ -9,6 +9,7 @@ Asian-handicap lines — no closing prices, because those exist only after kick-
 from __future__ import annotations
 
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import requests
@@ -19,6 +20,9 @@ from .football_data import _parse_dates, _pick_families
 
 FIXTURE_URL = "https://www.football-data.co.uk/fixtures.csv"
 FIXTURE_PATH = RAW_DIR / "fixtures.csv"
+
+#: Kick-off times are published in UK local time, DST included.
+UK_TZ = ZoneInfo("Europe/London")
 
 #: Opening prices for a match that has not kicked off yet.
 FIXTURE_FAMILIES: tuple[tuple[str, str, str], ...] = (
@@ -63,10 +67,16 @@ def parse_fixtures(raw: pd.DataFrame) -> pd.DataFrame:
 
     clock = pd.to_datetime(out["time"], format="%H:%M", errors="coerce").dt.time
     clock = clock.fillna(pd.to_datetime("15:00", format="%H:%M").time())
-    out["kickoff"] = [
+    naive = pd.to_datetime([
         pd.Timestamp(day) + pd.Timedelta(hours=t.hour, minutes=t.minute)
         for day, t in zip(out["date"], clock)
-    ]
+    ])
+    # football-data publishes UK local time.  Localising here (rather than
+    # comparing against the machine clock) keeps "has this kicked off?" correct
+    # on any runner, including the BST/GMT switch at the end of October.
+    out["kickoff"] = naive.tz_localize(
+        UK_TZ, ambiguous="raise", nonexistent="shift_forward"
+    )
 
     picked = _pick_families(raw, FIXTURE_FAMILIES, 0.9)
     for slot, side in enumerate(("h", "d", "a")):
