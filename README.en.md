@@ -113,7 +113,7 @@ information; the price column is the de-vigged Pinnacle opening line.
 
 <!-- FIXTURES:START -->
 
-**Round of 2026-10-23: 10 fixtures, 5 of them already kicked off and waiting for a result.** Prices are de-vigged Pinnacle openers (`PPH+PPD+PPA`).
+**Round of 2026-10-23: 10 fixtures, 9 of them already kicked off and waiting for a result.** Prices are de-vigged Pinnacle openers (`PPH+PPD+PPA`).
 
 | Kick-off | Fixture | Model H / D / A | Price H / D / A | Pick |
 | --- | --- | --- | --- | --- |
