@@ -337,6 +337,40 @@ def derived_market_chart(table: pd.DataFrame, outdir: Path | None = None) -> Pat
     return _save(fig, "ou_25.png", outdir)
 
 
+def prior_ladder(summary: dict, outdir: Path | None = None) -> Path:
+    """The gap to the closing line, split into reachable and unreachable parts."""
+    from matplotlib.patches import Patch
+
+    _style()
+    closing = summary["closing"]
+    opening = summary["opening"]
+    model = summary["model"]
+
+    fig, ax = plt.subplots(figsize=(7.6, 2.4))
+    ax.barh([0], [opening - closing], left=closing, height=0.5, color="#94a3b8")
+    ax.barh([0], [model - opening], left=opening, height=0.5, color=COLORS["blend"])
+
+    ax.text((closing + opening) / 2, 0, f"+{opening - closing:.4f}", ha="center", va="center",
+            fontsize=8, color="white", fontweight="bold")
+    ax.text((opening + model) / 2, 0, f"+{model - opening:.4f}", ha="center", va="center",
+            fontsize=8.5, color="white", fontweight="bold")
+
+    ax.set_ylim(-0.45, 0.45)
+    ax.set_yticks([])
+    ax.set_xlim(closing - 0.005, model + 0.004)
+    ax.set_xlabel("Log loss (lower is better)")
+    ax.set_title("76% of the gap is the opening line; the model adds nothing on top of it", fontsize=9.5)
+    ax.legend(
+        handles=[
+            Patch(color="#94a3b8", label=f"opening {opening:.4f} − closing {closing:.4f}"),
+            Patch(color=COLORS["blend"], label=f"model {model:.4f} − opening"),
+        ],
+        ncol=2, fontsize=7.5, loc="upper center", bbox_to_anchor=(0.5, -0.45),
+    )
+    ax.grid(axis="y", visible=False)
+    return _save(fig, "prior_ladder.png", outdir)
+
+
 OUTCOME_COLORS = {"H": "#2563eb", "D": "#9ca3af", "A": "#f59e0b"}
 
 

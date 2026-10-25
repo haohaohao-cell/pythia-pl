@@ -268,6 +268,36 @@ def _cmd_markets(args: argparse.Namespace) -> None:
     print(f"saved {path} and reports/ou_25.png")
 
 
+def _cmd_prior(args: argparse.Namespace) -> None:
+    from .config import REPORTS_DIR
+    from .dataset import load_dataset
+    from .eval.prior import run_prior_study
+    from .report import get_predictions
+    from . import plots
+
+    features = load_dataset()
+    preds = get_predictions()
+    table, summary = run_prior_study(features, preds)
+    if table.empty:
+        print("no overlapping matches with opening prices")
+        return
+
+    print(table.round(4).to_string(index=False))
+    print()
+    for name in ("model", "opening", "hybrid", "closing"):
+        print(f"{name:<8}{summary[name]:>9.4f}")
+    print(f"\nmedian mix weight: {summary['median_weight']:.2f}  "
+          f"(1.00 means the optimiser discarded the model entirely)")
+    print(f"gap closed by anchoring on the opening line: {summary['gap_closed'] * 100:.0f}%")
+    print(f"hybrid minus closing: {summary['hybrid_vs_closing']['delta']:+.4f} "
+          f"(95% CI {summary['hybrid_vs_closing']['ci_low']:+.4f} to "
+          f"{summary['hybrid_vs_closing']['ci_high']:+.4f})")
+
+    table.to_csv(REPORTS_DIR / "prior_study.csv", index=False)
+    plots.prior_ladder(summary)
+    print(f"saved {REPORTS_DIR / 'prior_study.csv'} and reports/prior_ladder.png")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="pythia", description="Premier League forecast benchmark")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -311,6 +341,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("markets", help="derived market: over/under 2.5 goals")
     p.set_defaults(func=_cmd_markets)
+
+    p = sub.add_parser("prior", help="how much of the market can the model replicate?")
+    p.set_defaults(func=_cmd_prior)
 
     p = sub.add_parser("fpl", help="squad availability snapshot from the FPL API")
     p.add_argument("--snapshot", action="store_true", help="commit today's team-level snapshot")

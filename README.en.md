@@ -305,6 +305,54 @@ pythia markets   # reproduce the table and figure (reports/ou_25.csv)
 
 ---
 
+## Market prior: splitting the 0.021 into reachable and unreachable
+
+Last question: if public features cannot close the gap, what about **using the market itself as
+a feature**? The model's probabilities are mixed with the de-vigged **opening** price by a
+weight `w`, tuned on all *previous* seasons (the closing line is the referee and may not be
+used; the opening line is legitimate pre-match information).
+
+| | Log loss |
+| --- | --- |
+| Model | 0.9767 |
+| Opening line (de-vigged) | 0.9601 |
+| Mix (tuned) | 0.9608 |
+| Closing line (referee) | **0.9558** |
+
+**The optimiser drove `w` to 1.00** — a full 1.00 in six of nine seasons, 0.85/0.95/0.5 in the
+rest. In other words: *once you hold the opening line, this model is a noise term and the best
+use of it is to throw it away.*
+
+So "76% of the gap recovered" must be read precisely: **the opening line recovered it, not the
+model.**
+
+![The ladder](reports/prior_ladder.png)
+
+The useful object is the ladder:
+
+```
+closing 0.9558  ──+0.0042──▶  opening 0.9601  ──+0.0167──▶  model 0.9767
+```
+
+- **+0.0042** — information the market gains between the opening and closing prices: line-ups,
+  team news, money. This is precisely the part we cannot get.
+- **+0.0167** — what the market already knew at the open and we do not, plus our own modelling
+  error (the two cannot be separated with the data we have).
+
+Which turns 0.0209 into a decomposition:
+
+> **roughly 0.004 is a pre-match information gap; roughly 0.017 is the distance between public
+> data and the market's assessment.**
+
+It also explains why the previous four experiments all failed: they were trying to climb the
+0.017, and that segment does not move by adding one more public feature.
+
+```bash
+pythia prior   # reproduce the table and figure (reports/prior_study.csv)
+```
+
+---
+
 ## Why this is not another accuracy-chasing repo
 
 | Common practice | Here |
