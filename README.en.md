@@ -223,6 +223,50 @@ roughly the price of knowing who cannot play today.
 
 ---
 
+## Injuries: a dead end, and a line cast for later
+
+That takeaway points straight at squad news, so it was the next thing to try. This is the
+most interesting part of the whole project, because **it failed for a reason that is not
+technical**.
+
+**Step 1 — the source looks perfect.** The FPL `bootstrap-static` endpoint exposes 669
+players with `status` (`a/d/i/s/u`), `chance_of_playing_next_round` and a free-text `news`
+field. In gameweek 8, **200 of 669 players are not fully available**.
+
+**Step 2 — the fatal question: can it be backtested?** No. `element-summary/{id}` returns a
+per-gameweek `history` whose fields are `minutes`, `starts`, `total_points`,
+`expected_goals`… **all of them knowable only after the match.** Not one field records
+"was this player injured *before* that gameweek".
+
+The API exposes the present, never the past. No historical snapshot means no out-of-sample
+period, and using today's injury list to explain a past match is time travel.
+
+**Step 3 — what can be done instead: start collecting.** Each refresh appends a 20-row
+team-level snapshot (minutes-weighted availability) to `data/fpl/`, committed to the repo.
+After a season there will be 50+ time points, and the question "does a squad suddenly losing
+minutes predict the next three matchdays?" becomes answerable.
+
+| Field | Meaning |
+| --- | --- |
+| `avail_score` | selectable players' season minutes / squad minutes |
+| `n_injured` / `n_doubtful` / `n_suspended` | counts by status |
+| `minutes_available` | minutes of real football still on the pitch |
+
+**A side effect: team names again.** FPL says `Spurs`, `Hull City`, `Ipswich Town`,
+`Coventry City`; four more aliases were needed. That is the third provider in this project
+(football-data → Understat → FPL) with its own spelling of the same twenty clubs — the
+"60% of the work is name mapping" claim keeps being true.
+
+**Current stance: display only, never a model input.** Same rule as temperature scaling and
+xG — nothing enters the leaderboard before it has been validated out of sample.
+
+```bash
+pythia fpl              # current availability by club
+pythia fpl --snapshot   # store today's snapshot (done weekly by Actions)
+```
+
+---
+
 ## Why this is not another accuracy-chasing repo
 
 | Common practice | Here |
@@ -357,9 +401,10 @@ because it makes money.
 
 - [x] Temperature calibration — done, no gain; the gap is not calibration
 - [x] Understat xG ablation — done, −0.0014, kept as an optional extra
+- [x] Injury data reconnaissance — **no free history, not backtestable**; snapshots now collected weekly
+- [ ] First real injury ablation once a season of availability snapshots exists
 - [ ] Over/under 2.5 and Asian handicap markets
 - [ ] Diebold-Mariano test alongside the bootstrap
-- [ ] Injury data (the FPL API availability flags are the realistic free entry point)
 
 ## Disclaimer
 

@@ -217,6 +217,30 @@ def _cmd_ablate(args: argparse.Namespace) -> None:
     print(f"\nsaved {path}")
 
 
+def _cmd_fpl(args: argparse.Namespace) -> None:
+    from .ingest import fpl
+    from .teams import en_name
+
+    bootstrap = fpl.fetch_bootstrap()
+    players = fpl.players_frame(bootstrap)
+    table = fpl.team_availability(bootstrap)
+
+    gw = fpl.current_gameweek(bootstrap)
+    flagged = int((players["status"] != "a").sum())
+    print(f"gameweek {gw}: {len(players)} players listed, {flagged} not fully available")
+
+    if not table.empty:
+        view = table.head(args.top).copy()
+        view["club"] = view["team"].map(en_name)
+        view["avail"] = (view["avail_score"] * 100).round(1)
+        print(view[["club", "n_injured", "n_doubtful", "n_suspended",
+                    "minutes_available", "avail"]].to_string(index=False))
+
+    if args.snapshot:
+        path = fpl.save_snapshot(bootstrap)
+        print(f"\nsnapshot saved: {path}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="pythia", description="Premier League forecast benchmark")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -257,6 +281,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("ablate", help="xG ablation: same protocol, one variable changed")
     p.set_defaults(func=_cmd_ablate)
+
+    p = sub.add_parser("fpl", help="squad availability snapshot from the FPL API")
+    p.add_argument("--snapshot", action="store_true", help="commit today's team-level snapshot")
+    p.add_argument("--top", type=int, default=10)
+    p.set_defaults(func=_cmd_fpl)
 
     p = sub.add_parser("value", help="appendix: flat-stake value-bet probe")
     p.add_argument("--model", default="blend")
