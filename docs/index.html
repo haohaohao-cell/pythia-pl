@@ -13,6 +13,10 @@
   header { border-bottom: 1px solid var(--line); padding-bottom: 22px; margin-bottom: 28px; }
   h1 { font-size: 26px; margin: 0 0 6px; letter-spacing:-0.3px; }
   .sub { color: var(--muted); font-size: 13.5px; }
+  .cta { display:inline-block; margin-top:12px; font-size:13px; font-weight:600;
+         color:#fff; background:var(--accent); padding:7px 13px; border-radius:8px;
+         text-decoration:none; }
+  .cta:hover { background:#1d4ed8; }
   .cards { display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin: 26px 0 34px; }
   .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
   .card .k { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
@@ -41,6 +45,7 @@
   <h1>PYTHIA</h1>
   <div class="sub">Premier League forecast · 2026-27 · walk-forward backtest over
   3044 out-of-sample matches · benchmark: Closing line (de-vigged)</div>
+  <a class="cta" href="./explorer.html">交互探索器 · 选两支球队看概率与比分分布 →</a>
 </header>
 
 <div class="cards">

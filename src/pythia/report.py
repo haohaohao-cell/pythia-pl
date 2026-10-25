@@ -250,6 +250,10 @@ def write_dashboard(
   header {{ border-bottom: 1px solid var(--line); padding-bottom: 22px; margin-bottom: 28px; }}
   h1 {{ font-size: 26px; margin: 0 0 6px; letter-spacing:-0.3px; }}
   .sub {{ color: var(--muted); font-size: 13.5px; }}
+  .cta {{ display:inline-block; margin-top:12px; font-size:13px; font-weight:600;
+         color:#fff; background:var(--accent); padding:7px 13px; border-radius:8px;
+         text-decoration:none; }}
+  .cta:hover {{ background:#1d4ed8; }}
   .cards {{ display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin: 26px 0 34px; }}
   .card {{ background:#fff; border:1px solid var(--line); border-radius:10px; padding:14px 16px; }}
   .card .k {{ font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }}
@@ -278,6 +282,7 @@ def write_dashboard(
   <h1>PYTHIA</h1>
   <div class="sub">Premier League forecast · {season} · walk-forward backtest over
   {stats['n_matches']} out-of-sample matches · benchmark: {MODEL_DISPLAY['market']}</div>
+  <a class="cta" href="./explorer.html">交互探索器 · 选两支球队看概率与比分分布 →</a>
 </header>
 
 <div class="cards">
@@ -390,6 +395,10 @@ def generate(*, refresh: bool = True, n_sims: int = 20_000, inject_readme: bool 
     block = results_markdown(preds, stats, sim)
     (REPORTS_DIR / "results_block.md").write_text(block, encoding="utf-8")
 
+    from . import explorer
+
+    explorer_path = explorer.build(features, preds, forecast if not forecast.empty else None)
+
     dashboard = write_dashboard(stats, preds, sim, figures, forecast, fixtures_figure)
 
     if inject_readme:
@@ -404,17 +413,21 @@ def generate(*, refresh: bool = True, n_sims: int = 20_000, inject_readme: bool 
         "figures": figures,
         "forecast": forecast,
         "dashboard": dashboard,
+        "explorer": explorer_path,
     }
 
 
-def _live_models(features: pd.DataFrame, finals: dict, preds: pd.DataFrame) -> dict:
-    """Join the already-fitted models with the blend weights the backtest would use.
+def blend_weights(preds: pd.DataFrame) -> list[float] | None:
+    """Shrunk stacking weights from the two preceding seasons of forecasts.
 
-    The weights are tuned on out-of-sample forecasts from the two preceding
-    seasons and shrunk toward equal — the same rule the walk-forward applies,
-    rather than a fresh fit on the season being forecast.
+    Same rule the walk-forward uses: tune on out-of-sample predictions, then
+    shrink halfway toward equal weights because 760 matches cannot identify a
+    3-simplex cleanly.
     """
-    from .models.blend import Blend, tune_weights
+    from .models.blend import tune_weights
+
+    if preds is None or preds.empty:
+        return None
 
     components = ("elo_logit", "dixon_coles", "gbdt")
     wide = preds.pivot_table(index="match_id", columns="model", values=["p_home", "p_draw", "p_away"])
@@ -423,22 +436,28 @@ def _live_models(features: pd.DataFrame, finals: dict, preds: pd.DataFrame) -> d
 
     seasons = sorted(wide["season"].unique())[-2:]
     history = wide.loc[wide["season"].isin(seasons)]
-    if len(history) >= 200:
-        probs = {
-            n: np.column_stack([
-                history[("p_home", n)], history[("p_draw", n)], history[("p_away", n)],
-            ])
-            for n in components
-        }
-        y = history["ftr"].map({"H": 0, "D": 1, "A": 2}).to_numpy(dtype=int)
-        tuned = tune_weights(probs, y)
-        equal = 1.0 / len(components)
-        weights = {n: 0.5 * equal + 0.5 * tuned[n] for n in components}
-        total = sum(weights.values())
-        weights = [weights[n] / total for n in components]
-    else:
-        weights = None
+    if len(history) < 200:
+        return None
 
+    probs = {
+        n: np.column_stack([
+            history[("p_home", n)], history[("p_draw", n)], history[("p_away", n)],
+        ])
+        for n in components
+    }
+    y = history["ftr"].map({"H": 0, "D": 1, "A": 2}).to_numpy(dtype=int)
+    tuned = tune_weights(probs, y)
+    equal = 1.0 / len(components)
+    weights = {n: 0.5 * equal + 0.5 * tuned[n] for n in components}
+    total = sum(weights.values())
+    return [weights[n] / total for n in components]
+
+
+def _live_models(features: pd.DataFrame, finals: dict, preds: pd.DataFrame) -> dict:
+    """Join the already-fitted models with the blend weights the backtest would use."""
+    from .models.blend import Blend
+
+    weights = blend_weights(preds)
     blend = Blend([finals["elo_logit"], finals["dixon_coles"], finals["gbdt"]], weights=weights)
     if weights is None:
         blend.weights = [1 / 3, 1 / 3, 1 / 3]

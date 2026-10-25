@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PYTHIA 探索器 · 英超概率与比分</title>
+<style>
+  :root { --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --bg:#f9fafb;
+          --home:#2563eb; --draw:#9ca3af; --away:#f59e0b; --accent:#2563eb; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+  .wrap { max-width: 880px; margin:0 auto; padding: 34px 20px 70px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .top { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+  h1 { font-size: 25px; margin: 0 0 6px; letter-spacing: -0.3px; }
+  .sub { color: var(--muted); font-size: 13.5px; margin-bottom: 26px; }
+
+  .picker { display:flex; align-items:end; gap:10px; background:#fff; border:1px solid var(--line);
+            border-radius:12px; padding:16px; flex-wrap:wrap; }
+  .picker label { display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--muted);
+                  flex:1 1 220px; }
+  select { font:inherit; padding:9px 10px; border:1px solid var(--line); border-radius:8px;
+           background:#fff; color:var(--ink); width:100%; }
+  select:focus { outline:2px solid #bfdbfe; border-color:var(--accent); }
+  #swap { font: inherit; font-size:18px; line-height:1; padding:10px 13px; border:1px solid var(--line);
+          background:#fff; border-radius:8px; cursor:pointer; color:var(--muted); }
+  #swap:hover { color:var(--ink); border-color:#cbd5e1; }
+
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .outcome { margin-top:14px; }
+  .prob { display:grid; grid-template-columns: 54px 1fr 62px; gap:10px; align-items:center;
+          margin:9px 0; font-variant-numeric: tabular-nums; }
+  .prob .k { font-size:13px; color:var(--muted); }
+  .prob .track { background:#f1f5f9; border-radius:6px; height:22px; overflow:hidden; }
+  .prob .fill { height:100%; width:0; border-radius:6px; transition: width .28s ease; }
+  .prob .v { text-align:right; font-weight:600; font-size:15px; }
+  .track.home .fill { background:var(--home); }
+  .track.draw .fill { background:var(--draw); }
+  .track.away .fill { background:var(--away); }
+  .market { margin-top:12px; padding-top:12px; border-top:1px dashed var(--line);
+            font-size:13px; color:var(--muted); display:flex; gap:14px; flex-wrap:wrap; }
+  .market b { color:var(--ink); font-weight:600; }
+
+  .grid { display:grid; grid-template-columns: 1.05fr .95fr; gap:14px; margin-top:14px; }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);
+       margin:0 0 10px; font-weight:600; }
+  table.heat { border-collapse: collapse; width:100%; font-variant-numeric: tabular-nums; }
+  table.heat td, table.heat th { text-align:center; font-size:11.5px; padding:0; }
+  table.heat th { color:var(--muted); font-weight:500; padding:3px; }
+  table.heat td { height:34px; border:1px solid #fff; border-radius:4px; color:#0f172a; }
+  table.heat td.best { outline:2px solid var(--accent); outline-offset:-2px; font-weight:700; }
+  .axis { font-size:11px; color:var(--muted); margin-top:8px; }
+
+  ul.top { list-style:none; margin:0 0 16px; padding:0; }
+  ul.top li { display:flex; justify-content:space-between; font-size:13px; padding:5px 0;
+              border-bottom:1px solid #f1f5f9; font-variant-numeric: tabular-nums; }
+  ul.top li:last-child { border-bottom:0; }
+  .kv { display:flex; justify-content:space-between; font-size:13px; padding:4px 0; color:var(--muted); }
+  .kv b { color:var(--ink); font-weight:600; }
+  .note { font-size:12px; color:var(--muted); margin-top:18px; line-height:1.7; }
+  footer { margin-top:26px; padding-top:14px; border-top:1px solid var(--line);
+           font-size:11.5px; color:var(--muted); }
+  code { background:#eef2ff; padding:1px 5px; border-radius:4px; font-size:11.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="./">← 返回报告</a></div>
+  <h1>PYTHIA 探索器</h1>
+  <div class="sub">选两支球队，浏览器里实时计算胜平负概率与比分分布。没有服务器，参数随每周数据更新。</div>
+
+  <div class="picker">
+    <label>主队 <select id="home"></select></label>
+    <button id="swap" title="交换主客">⇄</button>
+    <label>客队 <select id="away"></select></label>
+  </div>
+
+  <div class="card outcome">
+    <div class="prob"><span class="k">主胜</span><div class="track home"><div class="fill" id="fh"></div></div><span class="v" id="vh">–</span></div>
+    <div class="prob"><span class="k">平局</span><div class="track draw"><div class="fill" id="fd"></div></div><span class="v" id="vd">–</span></div>
+    <div class="prob"><span class="k">客胜</span><div class="track away"><div class="fill" id="fa"></div></div><span class="v" id="va">–</span></div>
+    <div class="market" id="market"></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>比分分布（%）</h2>
+      <table class="heat" id="heat"></table>
+      <div class="axis">纵轴 = 主队进球，横轴 = 客队进球</div>
+    </div>
+    <div class="card">
+      <h2>最可能比分</h2>
+      <ul class="top" id="top"></ul>
+      <h2>期望进球</h2>
+      <div class="kv"><span>主队</span><b id="lam">–</b></div>
+      <div class="kv"><span>客队</span><b id="mu">–</b></div>
+      <div class="kv"><span>合计</span><b id="tot">–</b></div>
+    </div>
+  </div>
+
+  <p class="note">
+    概率来自 <b>Elo + Dixon-Coles + 梯度提升</b> 的收缩融合；比分格子由 Dixon-Coles 参数在本地重算
+    （含低比分修正 ρ）。初盘只在有赛程数据的场次显示，为去抽水后的 Pinnacle 价格。
+    这是研究项目，不是投注建议——3,044 场样本外回测里，模型比收盘价差 0.021 log loss。
+  </p>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+const P = __PAYLOAD__;
+const TEAMS = Object.fromEntries(P.teams.map(t => [t.key, t]));
+const NG = P.dc.max_goals, DG = P.dc.display_goals;
+
+const selH = document.getElementById('home');
+const selA = document.getElementById('away');
+
+function label(t) { return t.zh === t.en ? t.en : (t.zh + ' · ' + t.en); }
+
+function fillSelects() {
+  const opts = P.teams.slice().sort((a, b) => b.elo - a.elo);
+  for (const [sel, def] of [[selH, 0], [selA, 1]]) {
+    sel.innerHTML = '';
+    for (const t of opts) {
+      const o = document.createElement('option');
+      o.value = t.key;
+      o.textContent = label(t);
+      sel.appendChild(o);
+    }
+    sel.selectedIndex = def;
+  }
+}
+
+function poisson(k, lam) {
+  let p = Math.exp(-lam);
+  for (let i = 1; i <= k; i++) p *= lam / i;
+  return p;
+}
+
+function scoreMatrix(homeKey, awayKey) {
+  const h = TEAMS[homeKey], a = TEAMS[awayKey];
+  const lam = Math.exp(h.attack - a.defence + P.dc.home_adv);
+  const mu = Math.exp(a.attack - h.defence);
+  const r = P.dc.rho;
+  const m = [];
+  for (let i = 0; i < NG; i++) {
+    const pi = poisson(i, lam);
+    const row = [];
+    for (let j = 0; j < NG; j++) row.push(pi * poisson(j, mu));
+    m.push(row);
+  }
+  m[0][0] *= 1 - lam * mu * r;
+  m[0][1] *= 1 + lam * r;
+  m[1][0] *= 1 + mu * r;
+  m[1][1] *= 1 - r;
+  let sum = 0;
+  for (const row of m) for (const v of row) sum += Math.max(v, 0);
+  for (let i = 0; i < NG; i++) for (let j = 0; j < NG; j++) m[i][j] = Math.max(m[i][j], 0) / sum;
+  return { m, lam, mu };
+}
+
+function pct(x, digits = 1) { return (x * 100).toFixed(digits) + '%'; }
+
+function render() {
+  if (selH.value === selA.value) {
+    const idx = selA.selectedIndex;
+    selA.selectedIndex = (idx + 1) % selA.options.length;
+    if (selH.value === selA.value) selH.selectedIndex = (idx + 2) % selH.options.length;
+  }
+  const home = selH.value, away = selA.value;
+  const key = home + '|' + away;
+  const probs = P.pairs[key] || [1/3, 1/3, 1/3];
+
+  document.getElementById('fh').style.width = (probs[0] * 100) + '%';
+  document.getElementById('fd').style.width = (probs[1] * 100) + '%';
+  document.getElementById('fa').style.width = (probs[2] * 100) + '%';
+  document.getElementById('vh').textContent = pct(probs[0]);
+  document.getElementById('vd').textContent = pct(probs[1]);
+  document.getElementById('va').textContent = pct(probs[2]);
+
+  const mk = P.market[key];
+  const fx = P.fixtures[key];
+  if (mk) {
+    const delta = (probs[0] - mk[0]) * 100;
+    const sign = delta >= 0 ? '+' : '';
+    const when = fx ? fx.kickoff.slice(5) + ' 开球' : '';
+    document.getElementById('market').innerHTML =
+      '<span>初盘：<b>' + pct(mk[0]) + ' / ' + pct(mk[1]) + ' / ' + pct(mk[2]) + '</b></span>' +
+      '<span>模型对主胜 ' + sign + delta.toFixed(1) + 'pp</span>' +
+      (when ? '<span>' + when + '</span>' : '');
+  } else {
+    document.getElementById('market').innerHTML =
+      '<span>这场没有初盘数据，只显示模型概率。</span>';
+  }
+
+  const { m, lam, mu } = scoreMatrix(home, away);
+  document.getElementById('lam').textContent = lam.toFixed(2);
+  document.getElementById('mu').textContent = mu.toFixed(2);
+  document.getElementById('tot').textContent = (lam + mu).toFixed(2);
+
+  let max = 0;
+  for (let i = 0; i < DG; i++) for (let j = 0; j < DG; j++) max = Math.max(max, m[i][j]);
+
+  let html = '<tr><th></th>';
+  for (let j = 0; j < DG; j++) html += '<th>' + j + '</th>';
+  html += '</tr>';
+  for (let i = 0; i < DG; i++) {
+    html += '<tr><th>' + i + '</th>';
+    for (let j = 0; j < DG; j++) {
+      const v = m[i][j];
+      const alpha = 0.06 + 0.9 * Math.pow(v / max, 0.85);
+      const best = v === max ? ' class="best"' : '';
+      const shown = v * 100 >= 1 ? (v * 100).toFixed(0) : (v * 100).toFixed(1);
+      html += '<td' + best + ' style="background:rgba(37,99,235,' + alpha.toFixed(3) + ');' +
+              'color:' + (alpha > 0.55 ? '#fff' : '#0f172a') + '">' + shown + '</td>';
+    }
+    html += '</tr>';
+  }
+  document.getElementById('heat').innerHTML = html;
+
+  const cells = [];
+  for (let i = 0; i < DG; i++) for (let j = 0; j < DG; j++) cells.push([i, j, m[i][j]]);
+  cells.sort((a, b) => b[2] - a[2]);
+  document.getElementById('top').innerHTML = cells.slice(0, 5)
+    .map(c => '<li><span>' + c[0] + ' - ' + c[1] + '</span><b>' + pct(c[2], 1) + '</b></li>')
+    .join('');
+
+  const w = P.weights;
+  const meta = w ? '融合权重 Elo ' + w[0].toFixed(2) + ' / DC ' + w[1].toFixed(2) + ' / GBDT ' + w[2].toFixed(2) : '使用等权融合';
+  document.getElementById('foot').innerHTML =
+    P.season + ' · 生成于 ' + P.generated + ' · ' + meta +
+    ' · Dixon-Coles 主场优势 ' + P.dc.home_adv.toFixed(2) + '，ρ ' + P.dc.rho.toFixed(3) +
+    ' · 共 ' + Object.keys(P.pairs).length + ' 组对阵';
+}
+
+document.getElementById('swap').addEventListener('click', () => {
+  const h = selH.value;
+  selH.value = selA.value;
+  selA.value = h;
+  render();
+});
+selH.addEventListener('change', render);
+selA.addEventListener('change', render);
+
+fillSelects();
+render();
+</script>
+</body>
+</html>

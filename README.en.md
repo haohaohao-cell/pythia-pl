@@ -8,6 +8,8 @@
 
 [中文说明](README.md) · A reproducible, auditable probabilistic forecaster for Premier League results.
 
+**[Live report](https://haohaohao-cell.github.io/pythia-pl/)** · **[Interactive explorer](https://haohaohao-cell.github.io/pythia-pl/explorer.html)** — pick two clubs and the scoreline distribution is recomputed in your browser.
+
 It does not advertise "62% accuracy". It answers one question: **with the data, metrics
 and benchmarks all on the table, how far is a model from the bookmaker's closing line?**
 
@@ -186,11 +188,13 @@ src/pythia/
 ├─ forecast.py   # next-round forecasts and a running hit record
 ├─ simulate.py   # Monte Carlo of the remaining schedule
 ├─ plots.py      # every figure
+├─ explorer.py   # exports the interactive page's payload (380 pairings)
 ├─ report.py     # tables, README injection, single-file HTML dashboard
 └─ cli.py
-tests/           # 39 tests, mostly about leakage
+tests/           # 48 tests, mostly about leakage
 reports/         # generated figures and CSVs (committed for convenience)
 docs/index.html  # self-contained dashboard, ready for GitHub Pages
+docs/explorer.html  # static interactive explorer; the model runs in your browser
 ```
 
 ---

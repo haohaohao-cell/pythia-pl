@@ -6,6 +6,8 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-111827.svg)](LICENSE)
 [![Backtest](https://img.shields.io/badge/backtest-3%2C044%20matches-2563eb.svg)](#结果)
 
+**[在线看板](https://haohaohao-cell.github.io/pythia-pl/)** · **[交互探索器](https://haohaohao-cell.github.io/pythia-pl/explorer.html)** —— 选两支球队，浏览器里实时算概率和比分分布（不需要服务器）。
+
 一个**可复现、可审计**的英超赛果概率预测器。不做"准确率 62%"式的宣传，只回答一个问题：
 **在数据、指标和基准都摆在桌面上的时候，模型离博彩收盘赔率还有多远？**
 
@@ -215,11 +217,15 @@ pythia-pl/
 │  ├─ forecast.py    # 下一轮逐场预测 + 已赛场次的命中记录
 │  ├─ simulate.py    # 剩余赛程蒙特卡洛
 │  ├─ plots.py       # 全部图表
+│  ├─ explorer.py    # 交互页数据导出（20 队 × 380 组对阵）
 │  ├─ report.py      # 榜单、README 回填、单文件 HTML 看板
 │  └─ cli.py         # pythia 命令
-├─ tests/            # 39 个测试，重点是防泄漏
+├─ tests/            # 48 个测试，重点是防泄漏
 ├─ reports/          # 生成的图表与 CSV（已入库，方便直接看）
-├─ docs/index.html   # 自包含看板，可直接开 GitHub Pages
+├─ docs/
+│  ├─ index.html     # 自包含看板
+│  ├─ explorer.html  # 纯前端交互探索器（模型参数内嵌，浏览器本地算）
+│  └─ explorer_template.html  # 模板，`__PAYLOAD__` 由 Python 注入
 └─ .github/workflows/weekly.yml   # 每周自动抓赛程并重算
 ```
 
