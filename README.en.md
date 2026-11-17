@@ -116,39 +116,7 @@ information; the price column is the de-vigged Pinnacle opening line.
 
 <!-- FIXTURES:START -->
 
-| Kick-off | Fixture | Model H / D / A | Price H / D / A | Pick | Result |
-| --- | --- | --- | --- | --- | --- |
-| 11-06 20:00 | Everton v Coventry | 0.55 / 0.25 / 0.20 | 0.57 / 0.25 / 0.19 | H 55% | 3-1 H ✅ |
-| 11-07 12:30 | Leeds v Tottenham | 0.45 / 0.25 / 0.30 | 0.34 / 0.29 / 0.37 | H 45% | 1-0 H ✅ |
-| 11-07 15:00 | Arsenal v Hull | 0.70 / 0.20 / 0.10 | 0.82 / 0.12 / 0.06 | H 70% | 1-0 H ✅ |
-| 11-07 15:00 | Fulham v Newcastle | 0.42 / 0.27 / 0.31 | 0.47 / 0.25 / 0.28 | H 42% | 1-1 D ❌ |
-| 11-07 17:30 | Nott'm Forest v Man City | 0.20 / 0.23 / 0.57 | 0.20 / 0.25 / 0.56 | A 57% | 3-1 H ❌ |
-| 11-08 14:00 | Brighton v Brentford | 0.51 / 0.24 / 0.24 | 0.50 / 0.25 / 0.25 | H 51% | 2-0 H ✅ |
-| 11-08 14:00 | Crystal Palace v Liverpool | 0.23 / 0.24 / 0.54 | 0.17 / 0.23 / 0.60 | A 54% | 1-3 A ✅ |
-| 11-08 14:00 | Ipswich v Bournemouth | 0.24 / 0.24 / 0.52 | 0.24 / 0.26 / 0.50 | A 52% | 1-2 A ✅ |
-| 11-08 14:00 | Sunderland v Chelsea | 0.32 / 0.26 / 0.42 | 0.25 / 0.26 / 0.49 | A 42% | 1-0 H ❌ |
-| 11-08 16:30 | Man United v Aston Villa | 0.43 / 0.26 / 0.31 | 0.45 / 0.25 / 0.30 | H 43% | 4-4 D ❌ |
-
-
-Settled so far: 6/10 calls correct (60%).
-
-Settled:
-
-| Kick-off | Fixture | Model H / D / A | Price H / D / A | Pick | Result |
-| --- | --- | --- | --- | --- | --- |
-| 11-06 20:00 | Everton v Coventry | 0.55 / 0.25 / 0.20 | 0.57 / 0.25 / 0.19 | H 55% | 3-1 H ✅ |
-| 11-07 12:30 | Leeds v Tottenham | 0.45 / 0.25 / 0.30 | 0.34 / 0.29 / 0.37 | H 45% | 1-0 H ✅ |
-| 11-07 15:00 | Arsenal v Hull | 0.70 / 0.20 / 0.10 | 0.82 / 0.12 / 0.06 | H 70% | 1-0 H ✅ |
-| 11-07 15:00 | Fulham v Newcastle | 0.42 / 0.27 / 0.31 | 0.47 / 0.25 / 0.28 | H 42% | 1-1 D ❌ |
-| 11-07 17:30 | Nott'm Forest v Man City | 0.20 / 0.23 / 0.57 | 0.20 / 0.25 / 0.56 | A 57% | 3-1 H ❌ |
-| 11-08 14:00 | Brighton v Brentford | 0.51 / 0.24 / 0.24 | 0.50 / 0.25 / 0.25 | H 51% | 2-0 H ✅ |
-| 11-08 14:00 | Crystal Palace v Liverpool | 0.23 / 0.24 / 0.54 | 0.17 / 0.23 / 0.60 | A 54% | 1-3 A ✅ |
-| 11-08 14:00 | Ipswich v Bournemouth | 0.24 / 0.24 / 0.52 | 0.24 / 0.26 / 0.50 | A 52% | 1-2 A ✅ |
-| 11-08 14:00 | Sunderland v Chelsea | 0.32 / 0.26 / 0.42 | 0.25 / 0.26 / 0.49 | A 42% | 1-0 H ❌ |
-| 11-08 16:30 | Man United v Aston Villa | 0.43 / 0.26 / 0.31 | 0.45 / 0.25 / 0.30 | H 43% | 4-4 D ❌ |
-
-
-![Next round](reports/next_round.png)
+_No forecastable fixtures in the feed._
 
 <!-- FIXTURES:END -->
 
