@@ -81,27 +81,27 @@ honest evaluation, not in scale.
 
 <!-- RESULTS:START -->
 
-**Out-of-sample: 3,074 matches, 9 seasons (2018-19 → 2026-27).** Lower log loss is better.
+**Out-of-sample: 3,084 matches, 9 seasons (2018-19 → 2026-27).** Lower log loss is better.
 
 | Model | Log loss | Brier | RPS | Accuracy |
 | --- | --- | --- | --- | --- |
-| Closing line (de-vigged) | 0.9565 | 0.5664 | 0.1954 | 0.5491 |
-| Blend (Elo + DC + GBDT) | 0.9775 | 0.5809 | 0.2023 | 0.5299 |
-| Elo + softmax | 0.9796 | 0.5821 | 0.2027 | 0.5335 |
-| Gradient boosting | 0.9920 | 0.5898 | 0.2056 | 0.5208 |
-| Dixon-Coles | 0.9949 | 0.5927 | 0.2080 | 0.5133 |
-| Base rates | 1.0685 | 0.6467 | 0.2342 | 0.4375 |
+| Closing line (de-vigged) | 0.9572 | 0.5669 | 0.1956 | 0.5490 |
+| Blend (Elo + DC + GBDT) | 0.9777 | 0.5810 | 0.2023 | 0.5295 |
+| Elo + softmax | 0.9798 | 0.5822 | 0.2027 | 0.5334 |
+| Gradient boosting | 0.9918 | 0.5896 | 0.2055 | 0.5198 |
+| Dixon-Coles | 0.9951 | 0.5928 | 0.2080 | 0.5133 |
+| Base rates | 1.0683 | 0.6466 | 0.2341 | 0.4381 |
 
-Gap to the closing line: **+0.0210** log loss (95% CI +0.0145 to +0.0268). Not statistically distinguishable from the market — by design.
+Gap to the closing line: **+0.0206** log loss (95% CI +0.0145 to +0.0272). Not statistically distinguishable from the market — by design.
 
 | Club | Projected pts | Title | Top 4 | Relegated |
 | --- | --- | --- | --- | --- |
-| Arsenal | 85.82 | 84.2% | 100.0% | 0.0% |
-| Man City | 74.79 | 10.6% | 96.4% | 0.0% |
-| Brighton | 71.67 | 4.9% | 90.9% | 0.0% |
-| Liverpool | 62.52 | 0.2% | 48.4% | 0.0% |
-| Chelsea | 57.17 | 0.1% | 18.6% | 0.2% |
-| Bournemouth | 55.94 | 0.0% | 13.4% | 0.3% |
+| Arsenal | 84.13 | 85.9% | 99.9% | 0.0% |
+| Man City | 72.70 | 9.3% | 92.5% | 0.0% |
+| Brighton | 69.30 | 3.6% | 83.0% | 0.0% |
+| Liverpool | 65.01 | 1.0% | 61.6% | 0.0% |
+| Brentford | 58.20 | 0.1% | 19.5% | 0.1% |
+| Bournemouth | 57.31 | 0.1% | 16.0% | 0.2% |
 
 <!-- RESULTS:END -->
 
@@ -130,18 +130,18 @@ week. It is the one artefact in this repository that gains value with time.
 
 <!-- LEDGER:START -->
 
-**2026-27 ledger: 100 matches settled.** Model 47 correct (47.0%), closing line 48 (48.0%); running log loss 1.0312 vs 1.0110.
+**2026-27 ledger: 110 matches settled.** Model 52 correct (47.3%), closing line 53 (48.2%); running log loss 1.0326 vs 1.0245.
 
 | Week | Matches | Model hits | Market hits | Model LL | Market LL |
 | --- | --- | --- | --- | --- | --- |
-| 2026-W36 | 11 | 4 | 4 | 1.0016 | 1.0059 |
-| 2026-W37 | 9 | 3 | 3 | 1.0463 | 1.0513 |
-| 2026-W38 | 11 | 6 | 6 | 1.0411 | 1.0553 |
-| 2026-W41 | 9 | 4 | 4 | 1.0427 | 1.0470 |
+| 2026-W38 | 11 | 6 | 6 | 1.0400 | 1.0553 |
+| 2026-W41 | 9 | 4 | 4 | 1.0420 | 1.0470 |
 | 2026-W42 | 10 | 5 | 7 | 1.0197 | 1.0128 |
-| 2026-W43 | 11 | 3 | 4 | 1.0380 | 1.0166 |
-| 2026-W44 | 9 | 6 | 5 | 1.0379 | 1.0174 |
-| 2026-W45 | 11 | 6 | 5 | 1.0312 | 1.0110 |
+| 2026-W43 | 11 | 3 | 4 | 1.0381 | 1.0166 |
+| 2026-W44 | 9 | 6 | 5 | 1.0376 | 1.0174 |
+| 2026-W45 | 11 | 6 | 5 | 1.0311 | 1.0110 |
+| 2026-W47 | 9 | 4 | 4 | 1.0353 | 1.0265 |
+| 2026-W48 | 1 | 1 | 1 | 1.0326 | 1.0245 |
 
 <!-- LEDGER:END -->
 
@@ -171,10 +171,10 @@ Method: one temperature per model (`pᵢ → pᵢ^(1/T)`, renormalised), fitted 
 
 | Model | Log loss | With temperature | Delta | Median T |
 | --- | --- | --- | --- | --- |
-| Blend (Elo + DC + GBDT) | 0.9775 | 0.9805 | +0.0030 | 1.00 |
-| Elo + softmax | 0.9796 | 0.9812 | +0.0016 | 1.00 |
-| Dixon-Coles | 0.9949 | 1.0036 | +0.0088 | 1.03 |
-| Gradient boosting | 0.9920 | 0.9912 | -0.0007 | 1.15 |
+| Blend (Elo + DC + GBDT) | 0.9777 | 0.9808 | +0.0030 | 1.00 |
+| Elo + softmax | 0.9798 | 0.9814 | +0.0016 | 1.00 |
+| Dixon-Coles | 0.9951 | 1.0038 | +0.0087 | 1.03 |
+| Gradient boosting | 0.9918 | 0.9911 | -0.0007 | 1.15 |
 
 Temperatures are fitted on the **previous** season's out-of-sample forecasts, never on the season being scored. The median T moves between 1.00 and 1.14: blend and Elo stay at 1.00, and the only genuinely over-confident model is gradient boosting (T = 1.14, which does recover 0.0006) — but it is too weak for that to matter. **No model gets a meaningful calibration improvement.**
 
@@ -182,9 +182,9 @@ Temperatures are fitted on the **previous** season's out-of-sample forecasts, ne
 
 | Forecast | Reliability ↓ | Resolution ↑ | Brier |
 | --- | --- | --- | --- |
-| Closing line | 0.0012 | 0.0782 | 0.5685 |
-| Blend | 0.0015 | 0.0656 | 0.5813 |
-| Blend + temperature | 0.0011 | 0.0618 | 0.5848 |
+| Closing line | 0.0011 | 0.0776 | 0.5689 |
+| Blend | 0.0016 | 0.0652 | 0.5818 |
+| Blend + temperature | 0.0012 | 0.0619 | 0.5847 |
 
 Read it as: reliability is nearly identical (0.0016 vs 0.0012) and almost the whole gap is **resolution** (0.0661 vs 0.0786). The model is not over-confident, it simply knows less. That is why a temperature cannot close the gap, and why the only meaningful direction is more information (xG, injuries, European fixtures), not sharper tuning.
 
