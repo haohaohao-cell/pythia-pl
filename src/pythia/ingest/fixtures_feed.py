@@ -8,6 +8,7 @@ Asian-handicap lines — no closing prices, because those exist only after kick-
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -34,8 +35,16 @@ FIXTURE_FAMILIES: tuple[tuple[str, str, str], ...] = (
 
 
 def download_fixtures(*, force: bool = False, timeout: int = 60) -> Path:
-    if FIXTURE_PATH.exists() and not force and FIXTURE_PATH.stat().st_size > 5_000:
-        return FIXTURE_PATH
+    """Fetch ``fixtures.csv``, refreshing a cache that is more than half a day old.
+
+    football-data rewrites this file a few times a week; a stale copy silently
+    turns the "next round" into last week's round, which is exactly the bug this
+    age check exists to prevent.
+    """
+    if FIXTURE_PATH.exists() and not force:
+        age_hours = (time.time() - FIXTURE_PATH.stat().st_mtime) / 3600.0
+        if age_hours < 12 and FIXTURE_PATH.stat().st_size > 5_000:
+            return FIXTURE_PATH
     last_err: Exception | None = None
     for attempt in range(3):
         try:

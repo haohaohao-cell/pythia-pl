@@ -22,8 +22,10 @@ import requests
 
 from ..config import DATA_DIR
 from ..teams import team_key
+from .fixtures_feed import UK_TZ
 
 BOOTSTRAP_URL = "https://fantasy.premierleague.com/api/bootstrap-static/"
+FIXTURES_URL = "https://fantasy.premierleague.com/api/fixtures/"
 SNAPSHOT_DIR = DATA_DIR / "fpl"
 RAW_JSON = DATA_DIR / "raw" / "fpl_bootstrap.json"
 
@@ -48,6 +50,45 @@ def current_gameweek(bootstrap: dict) -> int | None:
         if event.get("is_next"):
             return int(event["id"])
     return None
+
+
+def fetch_fixtures(bootstrap: dict | None = None, *, timeout: int = 30) -> pd.DataFrame:
+    """The full season schedule, with kick-offs converted to UK local time.
+
+    Football-data's ``fixtures.csv`` is the natural source for prices, but it is
+    not a reliable schedule: it lists whichever divisions are playing in the next
+    few days, and the Premier League can be absent for weeks at a time. The FPL
+    endpoint always carries the whole season, so it is used for the calendar and
+    the prices are joined on where they exist.
+    """
+    bootstrap = fetch_bootstrap() if bootstrap is None else bootstrap
+
+    resp = requests.get(FIXTURES_URL, timeout=timeout, headers={"User-Agent": "pythia/0.1"})
+    resp.raise_for_status()
+    raw = pd.DataFrame(resp.json())
+
+    teams = {t["id"]: team_key(t["name"]) for t in bootstrap.get("teams", [])}
+    frame = pd.DataFrame({
+        "event": pd.to_numeric(raw.get("event"), errors="coerce"),
+        "kickoff": pd.to_datetime(raw["kickoff_time"], errors="coerce", utc=True).dt.tz_convert(UK_TZ),
+        "home": raw["team_h"].map(teams),
+        "away": raw["team_a"].map(teams),
+        "finished": raw["finished"].astype(bool),
+        "started": raw.get("started", False).astype(bool),
+    })
+    return frame.dropna(subset=["kickoff", "home", "away"]).sort_values("kickoff").reset_index(drop=True)
+
+
+def next_round_fixtures(fixtures: pd.DataFrame, *, now: pd.Timestamp | None = None) -> pd.DataFrame:
+    """The earliest gameweek that still has an unfinished match."""
+    if fixtures.empty:
+        return fixtures
+    pending = fixtures.loc[~fixtures["finished"]]
+    if pending.empty:
+        return pending
+    event = pending["event"].min()
+    block = pending.loc[pending["event"] == event].copy()
+    return block.sort_values("kickoff").reset_index(drop=True)
 
 
 def players_frame(bootstrap: dict) -> pd.DataFrame:

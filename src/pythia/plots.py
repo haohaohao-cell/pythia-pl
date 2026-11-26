@@ -409,20 +409,28 @@ def calibration_study(lb: pd.DataFrame, decomp: pd.DataFrame, outdir: Path | Non
 
 
 def fixtures_chart(forecast: pd.DataFrame, outdir: Path | None = None) -> Path:
-    """Model vs market for the next round, as paired stacked bars."""
+    """Model vs market for the next round, as paired stacked bars.
+
+    When no prices have been published yet the market rows are dropped rather
+    than drawn as zero-width bars, which would read as "the market expects 0%".
+    """
     from matplotlib.patches import Patch
 
     _style()
     df = forecast.reset_index(drop=True)
     n = len(df)
-    fig, ax = plt.subplots(figsize=(7.4, 0.55 * n + 1.7))
-    y_model = np.arange(n) * 2.0
+    has_market = bool(df["mkt_home"].notna().any())
+    step = 2.0 if has_market else 1.0
+
+    fig, ax = plt.subplots(figsize=(7.4, 0.55 * n * (step / 2) + 2.0))
+    y_model = np.arange(n) * step
     y_market = y_model + 1.0
 
-    for offset, cols, alpha in (
-        (y_model, ("p_home", "p_draw", "p_away"), 1.0),
-        (y_market, ("mkt_home", "mkt_draw", "mkt_away"), 0.42),
-    ):
+    series = [(y_model, ("p_home", "p_draw", "p_away"), 1.0)]
+    if has_market:
+        series.append((y_market, ("mkt_home", "mkt_draw", "mkt_away"), 0.42))
+
+    for offset, cols, alpha in series:
         left = np.zeros(n)
         for code, col in zip(("H", "D", "A"), cols):
             values = df[col].to_numpy(float)
@@ -432,9 +440,10 @@ def fixtures_chart(forecast: pd.DataFrame, outdir: Path | None = None) -> Path:
                     edgecolor="white", linewidth=0.5)
             left += values
 
-    for i in range(n):
-        ax.text(0.006, y_model[i], "M", va="center", ha="left", fontsize=5.6, color="white")
-        ax.text(0.006, y_market[i], "P", va="center", ha="left", fontsize=5.6, color="#111827")
+    if has_market:
+        for i in range(n):
+            ax.text(0.006, y_model[i], "M", va="center", ha="left", fontsize=5.6, color="white")
+            ax.text(0.006, y_market[i], "P", va="center", ha="left", fontsize=5.6, color="#111827")
 
     labels = []
     for row in df.itertuples(index=False):
@@ -443,15 +452,16 @@ def fixtures_chart(forecast: pd.DataFrame, outdir: Path | None = None) -> Path:
             mark = " ✅" if row.hit else " ❌"
         labels.append(f"{en_name(row.home)} v {en_name(row.away)}{mark}")
 
-    ax.set_yticks(y_model + 0.5)
+    ax.set_yticks(y_model + (0.5 if has_market else 0.0))
     ax.set_yticklabels(labels, fontsize=7.4)
     ax.invert_yaxis()
     ax.set_xlim(0, 1)
     ax.set_xlabel("Probability")
     ax.grid(axis="y", visible=False)
-    ax.set_title("M = model · P = de-vigged opening price", fontsize=9.5)
+    ax.set_title("M = model · P = de-vigged opening price" if has_market
+                 else "Model probabilities (no prices published yet)", fontsize=9.5)
     ax.legend(
         handles=[Patch(color=OUTCOME_COLORS[c], label=lab) for c, lab in (("H", "Home"), ("D", "Draw"), ("A", "Away"))],
-        ncol=3, fontsize=7.5, loc="upper center", bbox_to_anchor=(0.5, -0.07),
+        ncol=3, fontsize=7.5, loc="upper center", bbox_to_anchor=(0.5, -0.20),
     )
     return _save(fig, "next_round.png", outdir)

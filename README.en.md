@@ -81,27 +81,27 @@ honest evaluation, not in scale.
 
 <!-- RESULTS:START -->
 
-**Out-of-sample: 3,044 matches, 9 seasons (2018-19 → 2026-27).** Lower log loss is better.
+**Out-of-sample: 3,084 matches, 9 seasons (2018-19 → 2026-27).** Lower log loss is better.
 
 | Model | Log loss | Brier | RPS | Accuracy |
 | --- | --- | --- | --- | --- |
-| Closing line (de-vigged) | 0.9558 | 0.5660 | 0.1952 | 0.5503 |
-| Blend (Elo + DC + GBDT) | 0.9767 | 0.5803 | 0.2020 | 0.5302 |
-| Elo + softmax | 0.9788 | 0.5815 | 0.2024 | 0.5342 |
-| Gradient boosting | 0.9911 | 0.5893 | 0.2054 | 0.5204 |
-| Dixon-Coles | 0.9941 | 0.5921 | 0.2077 | 0.5138 |
-| Base rates | 1.0686 | 0.6468 | 0.2342 | 0.4373 |
+| Closing line (de-vigged) | 0.9572 | 0.5669 | 0.1956 | 0.5490 |
+| Blend (Elo + DC + GBDT) | 0.9777 | 0.5810 | 0.2023 | 0.5295 |
+| Elo + softmax | 0.9798 | 0.5822 | 0.2027 | 0.5334 |
+| Gradient boosting | 0.9918 | 0.5896 | 0.2055 | 0.5198 |
+| Dixon-Coles | 0.9951 | 0.5928 | 0.2080 | 0.5133 |
+| Base rates | 1.0683 | 0.6466 | 0.2341 | 0.4381 |
 
-Gap to the closing line: **+0.0209** log loss (95% CI +0.0147 to +0.0271). Not statistically distinguishable from the market — by design.
+Gap to the closing line: **+0.0206** log loss (95% CI +0.0145 to +0.0272). Not statistically distinguishable from the market — by design.
 
 | Club | Projected pts | Title | Top 4 | Relegated |
 | --- | --- | --- | --- | --- |
-| Man City | 83.47 | 55.5% | 99.9% | 0.0% |
-| Arsenal | 81.68 | 41.8% | 99.7% | 0.0% |
-| Brighton | 68.91 | 2.4% | 82.6% | 0.0% |
-| Chelsea | 60.02 | 0.1% | 35.5% | 0.1% |
-| Liverpool | 58.77 | 0.1% | 29.1% | 0.1% |
-| Man United | 56.67 | 0.0% | 19.4% | 0.4% |
+| Arsenal | 84.13 | 85.9% | 99.9% | 0.0% |
+| Man City | 72.70 | 9.3% | 92.5% | 0.0% |
+| Brighton | 69.30 | 3.6% | 83.0% | 0.0% |
+| Liverpool | 65.01 | 1.0% | 61.6% | 0.0% |
+| Brentford | 58.20 | 0.1% | 19.5% | 0.1% |
+| Bournemouth | 57.31 | 0.1% | 16.0% | 0.2% |
 
 <!-- RESULTS:END -->
 
@@ -111,28 +111,31 @@ Gap to the closing line: **+0.0209** log loss (95% CI +0.0147 to +0.0271). Not s
 
 ## Next round
 
-Refreshed weekly by GitHub Actions. Model probabilities use only pre-match
-information; the price column is the de-vigged Pinnacle opening line.
+Refreshed weekly by GitHub Actions.
+
+The calendar comes from the **FPL API** (`/api/fixtures/`) and the prices from
+football-data's `fixtures.csv`. They are split because that file only lists divisions
+playing in the next few days and **frequently contains no Premier League matches at all**
+(it did for two consecutive weeks in November 2026), which used to render as "no
+fixtures forecastable". FPL always has the schedule; prices are joined when they exist
+and dropped otherwise.
 
 <!-- FIXTURES:START -->
 
-**Round of 2026-10-23: 10 fixtures, 9 of them already kicked off and waiting for a result.** Prices are de-vigged Pinnacle openers (`PPH+PPD+PPA`).
+**Round of 2026-11-27: 10 fixtures.** No prices published yet — model probabilities only.
 
-| Kick-off | Fixture | Model H / D / A | Price H / D / A | Pick |
-| --- | --- | --- | --- | --- |
-| 10-23 20:00 | Ipswich v Nott'm Forest | 0.33 / 0.26 / 0.41 | 0.31 / 0.28 / 0.41 | A 41% |
-| 10-24 12:30 | Aston Villa v Man City | 0.21 / 0.26 / 0.53 | 0.20 / 0.21 / 0.59 | A 53% |
-| 10-24 15:00 | Arsenal v Everton | 0.65 / 0.22 / 0.13 | 0.66 / 0.21 / 0.13 | H 65% |
-| 10-24 15:00 | Coventry v Fulham | 0.36 / 0.28 / 0.36 | 0.30 / 0.28 / 0.42 | H 36% |
-| 10-24 17:30 | Chelsea v Tottenham | 0.54 / 0.25 / 0.20 | 0.56 / 0.23 / 0.21 | H 54% |
-| 10-25 14:00 | Crystal Palace v Newcastle | 0.38 / 0.27 / 0.35 | 0.31 / 0.27 / 0.42 | H 38% |
-| 10-25 14:00 | Hull v Brentford | 0.38 / 0.27 / 0.34 | 0.20 / 0.25 / 0.56 | H 38% |
-| 10-25 14:00 | Liverpool v Brighton | 0.45 / 0.24 / 0.30 | 0.45 / 0.25 / 0.30 | H 45% |
-| 10-25 14:00 | Man United v Bournemouth | 0.49 / 0.26 / 0.25 | 0.44 / 0.26 / 0.30 | H 49% |
-| 10-25 16:30 | Sunderland v Leeds | 0.38 / 0.26 / 0.36 | 0.31 / 0.30 / 0.39 | H 38% |
-
-
-![Next round](reports/next_round.png)
+| Kick-off | Fixture | Model H / D / A | Pick |
+| --- | --- | --- | --- |
+| 11-27 20:00 | Nott'm Forest v Chelsea | 0.39 / 0.26 / 0.35 | H 39% |
+| 11-28 15:00 | Leeds v Coventry | 0.56 / 0.24 / 0.19 | H 56% |
+| 11-28 15:00 | Man United v Brentford | 0.41 / 0.26 / 0.33 | H 41% |
+| 11-28 17:30 | Ipswich v Aston Villa | 0.26 / 0.25 / 0.49 | A 49% |
+| 11-29 12:00 | Everton v Liverpool | 0.31 / 0.26 / 0.43 | A 43% |
+| 11-29 14:05 | Sunderland v Tottenham | 0.39 / 0.26 / 0.35 | H 39% |
+| 11-29 14:05 | Fulham v Bournemouth | 0.35 / 0.27 / 0.39 | A 39% |
+| 11-29 14:05 | Brighton v Newcastle | 0.58 / 0.23 / 0.20 | H 58% |
+| 11-29 14:05 | Crystal Palace v Hull | 0.34 / 0.28 / 0.38 | A 38% |
+| 11-29 16:30 | Arsenal v Man City | 0.53 / 0.23 / 0.23 | H 53% |
 
 <!-- FIXTURES:END -->
 
@@ -146,18 +149,18 @@ week. It is the one artefact in this repository that gains value with time.
 
 <!-- LEDGER:START -->
 
-**2026-27 ledger: 70 matches settled.** Model 34 correct (48.6%), closing line 35 (50.0%); running log loss 1.0167 vs 1.0054.
+**2026-27 ledger: 110 matches settled.** Model 52 correct (47.3%), closing line 53 (48.2%); running log loss 1.0326 vs 1.0245.
 
 | Week | Matches | Model hits | Market hits | Model LL | Market LL |
 | --- | --- | --- | --- | --- | --- |
-| 2026-W34 | 9 | 5 | 5 | 0.9307 | 0.9922 |
-| 2026-W35 | 10 | 6 | 5 | 0.9703 | 1.0024 |
-| 2026-W36 | 11 | 4 | 4 | 1.0025 | 1.0059 |
-| 2026-W37 | 9 | 3 | 3 | 1.0475 | 1.0513 |
-| 2026-W38 | 11 | 6 | 6 | 1.0405 | 1.0553 |
+| 2026-W38 | 11 | 6 | 6 | 1.0400 | 1.0553 |
 | 2026-W41 | 9 | 4 | 4 | 1.0421 | 1.0470 |
-| 2026-W42 | 10 | 5 | 7 | 1.0193 | 1.0128 |
-| 2026-W43 | 1 | 1 | 1 | 1.0167 | 1.0054 |
+| 2026-W42 | 10 | 5 | 7 | 1.0197 | 1.0128 |
+| 2026-W43 | 11 | 3 | 4 | 1.0381 | 1.0166 |
+| 2026-W44 | 9 | 6 | 5 | 1.0376 | 1.0174 |
+| 2026-W45 | 11 | 6 | 5 | 1.0311 | 1.0110 |
+| 2026-W47 | 9 | 4 | 4 | 1.0353 | 1.0265 |
+| 2026-W48 | 1 | 1 | 1 | 1.0326 | 1.0245 |
 
 <!-- LEDGER:END -->
 
@@ -187,10 +190,10 @@ Method: one temperature per model (`pᵢ → pᵢ^(1/T)`, renormalised), fitted 
 
 | Model | Log loss | With temperature | Delta | Median T |
 | --- | --- | --- | --- | --- |
-| Blend (Elo + DC + GBDT) | 0.9767 | 0.9798 | +0.0031 | 1.00 |
-| Elo + softmax | 0.9788 | 0.9805 | +0.0017 | 1.00 |
-| Dixon-Coles | 0.9941 | 1.0030 | +0.0089 | 1.03 |
-| Gradient boosting | 0.9911 | 0.9906 | -0.0006 | 1.14 |
+| Blend (Elo + DC + GBDT) | 0.9777 | 0.9808 | +0.0030 | 1.00 |
+| Elo + softmax | 0.9798 | 0.9814 | +0.0016 | 1.00 |
+| Dixon-Coles | 0.9951 | 1.0038 | +0.0087 | 1.03 |
+| Gradient boosting | 0.9918 | 0.9911 | -0.0007 | 1.15 |
 
 Temperatures are fitted on the **previous** season's out-of-sample forecasts, never on the season being scored. The median T moves between 1.00 and 1.14: blend and Elo stay at 1.00, and the only genuinely over-confident model is gradient boosting (T = 1.14, which does recover 0.0006) — but it is too weak for that to matter. **No model gets a meaningful calibration improvement.**
 
@@ -198,9 +201,9 @@ Temperatures are fitted on the **previous** season's out-of-sample forecasts, ne
 
 | Forecast | Reliability ↓ | Resolution ↑ | Brier |
 | --- | --- | --- | --- |
-| Closing line | 0.0012 | 0.0786 | 0.5681 |
-| Blend | 0.0016 | 0.0660 | 0.5812 |
-| Blend + temperature | 0.0014 | 0.0628 | 0.5841 |
+| Closing line | 0.0011 | 0.0776 | 0.5689 |
+| Blend | 0.0016 | 0.0652 | 0.5818 |
+| Blend + temperature | 0.0012 | 0.0619 | 0.5847 |
 
 Read it as: reliability is nearly identical (0.0016 vs 0.0012) and almost the whole gap is **resolution** (0.0661 vs 0.0786). The model is not over-confident, it simply knows less. That is why a temperature cannot close the gap, and why the only meaningful direction is more information (xG, injuries, European fixtures), not sharper tuning.
 

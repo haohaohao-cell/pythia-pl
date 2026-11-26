@@ -158,11 +158,14 @@ def _cmd_value(args: argparse.Namespace) -> None:
 def _cmd_fixtures(args: argparse.Namespace) -> None:
     from .dataset import load_dataset
     from .forecast import hit_rate, next_round
-    from .ingest.fixtures_feed import load_fixtures
+    from .ingest.fixtures_feed import download_fixtures
+    from .ingest.upcoming import load_upcoming
     from .teams import en_name
 
     features = load_dataset()
-    fixtures = load_fixtures(force=args.refresh)
+    if args.refresh:
+        download_fixtures(force=True)
+    fixtures = load_upcoming()
     forecast = next_round(features, fixtures)
     if forecast.empty:
         print("no upcoming fixtures in the feed")

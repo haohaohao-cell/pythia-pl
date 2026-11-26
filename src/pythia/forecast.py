@@ -12,7 +12,8 @@ import numpy as np
 import pandas as pd
 
 from .fixtures import fixture_row
-from .ingest.fixtures_feed import UK_TZ, load_fixtures
+from .ingest.fixtures_feed import UK_TZ
+from .ingest.upcoming import load_upcoming
 from .models.base import outcome_index
 from .models.blend import Blend
 from .models.dixon_coles import DixonColes
@@ -46,7 +47,7 @@ def next_round(
     now: pd.Timestamp | None = None,
 ) -> pd.DataFrame:
     """One row per fixture, with model and market probabilities."""
-    fixtures = load_fixtures() if fixtures is None else fixtures
+    fixtures = load_upcoming() if fixtures is None else fixtures
     if fixtures.empty:
         return pd.DataFrame()
 
@@ -140,17 +141,28 @@ HEADERS = {
 }
 
 
-def round_markdown(forecast: pd.DataFrame, *, lang: str = "zh", limit: int | None = None) -> str:
+def round_markdown(
+    forecast: pd.DataFrame,
+    *,
+    lang: str = "zh",
+    limit: int | None = None,
+    show_price: bool = True,
+) -> str:
     """Compact markdown table used in the README and the dashboard."""
     labels = HEADERS[lang]
     if forecast.empty:
         return labels["empty"] + "\n"
     view = forecast if limit is None else forecast.head(limit)
     show_result = bool((view["status"] == "played").any())
+    show_price = show_price and bool(view["mkt_home"].notna().any())
 
-    header = (f"| {labels['kickoff']} | {labels['fixture']} | {labels['model']} "
-              f"| {labels['price']} | {labels['pick']} |")
-    rule = "| --- | --- | --- | --- | --- |"
+    header = f"| {labels['kickoff']} | {labels['fixture']} | {labels['model']} |"
+    rule = "| --- | --- | --- |"
+    if show_price:
+        header += f" {labels['price']} |"
+        rule += " --- |"
+    header += f" {labels['pick']} |"
+    rule += " --- |"
     if show_result:
         header += f" {labels['result']} |"
         rule += " --- |"
@@ -164,7 +176,10 @@ def round_markdown(forecast: pd.DataFrame, *, lang: str = "zh", limit: int | Non
             market = f"{row.mkt_home:.2f} / {row.mkt_draw:.2f} / {row.mkt_away:.2f}"
         else:
             market = "—"
-        line = f"| {kickoff} | {fixture} | {model} | {market} | {row.pick} {row.pick_prob:.0%} |"
+        line = f"| {kickoff} | {fixture} | {model} |"
+        if show_price:
+            line += f" {market} |"
+        line += f" {row.pick} {row.pick_prob:.0%} |"
         if show_result:
             if row.status == "played":
                 result = f"{row.score} {row.result} {'✅' if row.hit else '❌'}"

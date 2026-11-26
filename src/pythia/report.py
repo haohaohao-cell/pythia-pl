@@ -480,7 +480,9 @@ def generate(*, refresh: bool = True, n_sims: int = 20_000, inject_readme: bool 
 
     # Weekly artefact: the next round, forecast live and compared with the price.
     live_models = _live_models(features, finals, preds)
-    fixtures = load_fixtures()
+    from .ingest.upcoming import load_upcoming
+
+    fixtures = load_upcoming()
     forecast = next_round(features, fixtures, models=live_models) if not fixtures.empty else pd.DataFrame()
     if not forecast.empty:
         forecast.to_csv(REPORTS_DIR / "fixtures_forecast.csv", index=False)
@@ -489,11 +491,15 @@ def generate(*, refresh: bool = True, n_sims: int = 20_000, inject_readme: bool 
             "README.md": fixtures_markdown(forecast, lang="zh"),
             "README.en.md": fixtures_markdown(forecast, lang="en"),
         }
-        (REPORTS_DIR / "fixtures_block.md").write_text(fixtures_blocks["README.md"], encoding="utf-8")
     else:
         fixtures_figure = None
         fixtures_blocks = {"README.md": "_赛程源暂时没有可预测的比赛。_",
                            "README.en.md": "_No forecastable fixtures in the feed._"}
+        # Remove last week's artefacts rather than leaving a stale round on display.
+        for stale in (REPORTS_DIR / "fixtures_forecast.csv", REPORTS_DIR / "next_round.png"):
+            stale.unlink(missing_ok=True)
+
+    (REPORTS_DIR / "fixtures_block.md").write_text(fixtures_blocks["README.md"], encoding="utf-8")
 
     block = results_markdown(preds, stats, sim)
     (REPORTS_DIR / "results_block.md").write_text(block, encoding="utf-8")
@@ -603,6 +609,8 @@ def fixtures_markdown(forecast: pd.DataFrame, *, lang: str = "zh") -> str:
     pending = forecast.loc[forecast["status"] != "played"]
     played = forecast.loc[forecast["status"] == "played"]
     stats = hit_rate(forecast)
+    has_prices = bool(forecast["mkt_home"].notna().any())
+    image = "reports/next_round.png" if has_prices else None
 
     lines = []
     if not pending.empty:
@@ -610,14 +618,22 @@ def fixtures_markdown(forecast: pd.DataFrame, *, lang: str = "zh") -> str:
         waiting = int((pending["status"] == "awaiting_result").sum())
         if lang == "en":
             note = f", {waiting} of them already kicked off and waiting for a result" if waiting else ""
-            lines.append(f"**Round of {first:%Y-%m-%d}: {len(pending)} fixtures{note}.** "
-                         f"Prices are de-vigged Pinnacle openers (`{pending['odds_src'].iloc[0] or '—'}`).\n")
+            if has_prices:
+                lines.append(f"**Round of {first:%Y-%m-%d}: {len(pending)} fixtures{note}.** "
+                             f"Prices are de-vigged Pinnacle openers (`{pending['odds_src'].iloc[0] or '—'}`).\n")
+            else:
+                lines.append(f"**Round of {first:%Y-%m-%d}: {len(pending)} fixtures{note}.** "
+                             f"No prices published yet — model probabilities only.\n")
         else:
             note = f"，其中 {waiting} 场已开球待赛果" if waiting else ""
-            lines.append(f"**最近一轮：{first:%Y-%m-%d} 起，共 {len(pending)} 场{note}。** "
-                         f"「初盘」为去抽水后的 Pinnacle 初盘（来源 `{pending['odds_src'].iloc[0] or '—'}`）。\n")
+            if has_prices:
+                lines.append(f"**最近一轮：{first:%Y-%m-%d} 起，共 {len(pending)} 场{note}。** "
+                             f"「初盘」为去抽水后的 Pinnacle 初盘（来源 `{pending['odds_src'].iloc[0] or '—'}`）。\n")
+            else:
+                lines.append(f"**最近一轮：{first:%Y-%m-%d} 起，共 {len(pending)} 场{note}。** "
+                             f"赛程来自 FPL，**初盘尚未公布**，此处只有模型概率。\n")
 
-    lines.append(round_markdown(pending if not pending.empty else forecast, lang=lang))
+    lines.append(round_markdown(pending if not pending.empty else forecast, lang=lang, show_price=has_prices))
     if stats["n"]:
         if lang == "en":
             lines.append(f"\nSettled so far: {stats['hits']}/{stats['n']} calls correct ({stats['rate']:.0%}).")
@@ -626,7 +642,8 @@ def fixtures_markdown(forecast: pd.DataFrame, *, lang: str = "zh") -> str:
     if not played.empty:
         lines.append("\nSettled:\n" if lang == "en" else "\n已赛场次：\n")
         lines.append(round_markdown(played, lang=lang))
-    lines.append("\n![下一轮](reports/next_round.png)" if lang == "zh" else "\n![Next round](reports/next_round.png)")
+    if image:
+        lines.append(f"\n![下一轮]({image})" if lang == "zh" else f"\n![Next round]({image})")
     return "\n".join(lines)
 
 

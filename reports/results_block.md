@@ -1,21 +1,21 @@
-**Out-of-sample: 3,044 matches, 9 seasons (2018-19 → 2026-27).** Lower log loss is better.
+**Out-of-sample: 3,084 matches, 9 seasons (2018-19 → 2026-27).** Lower log loss is better.
 
 | Model | Log loss | Brier | RPS | Accuracy |
 | --- | --- | --- | --- | --- |
-| Closing line (de-vigged) | 0.9558 | 0.5660 | 0.1952 | 0.5503 |
-| Blend (Elo + DC + GBDT) | 0.9767 | 0.5803 | 0.2020 | 0.5302 |
-| Elo + softmax | 0.9788 | 0.5815 | 0.2024 | 0.5342 |
-| Gradient boosting | 0.9911 | 0.5893 | 0.2054 | 0.5204 |
-| Dixon-Coles | 0.9941 | 0.5921 | 0.2077 | 0.5138 |
-| Base rates | 1.0686 | 0.6468 | 0.2342 | 0.4373 |
+| Closing line (de-vigged) | 0.9572 | 0.5669 | 0.1956 | 0.5490 |
+| Blend (Elo + DC + GBDT) | 0.9777 | 0.5810 | 0.2023 | 0.5295 |
+| Elo + softmax | 0.9798 | 0.5822 | 0.2027 | 0.5334 |
+| Gradient boosting | 0.9918 | 0.5896 | 0.2055 | 0.5198 |
+| Dixon-Coles | 0.9951 | 0.5928 | 0.2080 | 0.5133 |
+| Base rates | 1.0683 | 0.6466 | 0.2341 | 0.4381 |
 
-Gap to the closing line: **+0.0209** log loss (95% CI +0.0147 to +0.0271). Not statistically distinguishable from the market — by design.
+Gap to the closing line: **+0.0206** log loss (95% CI +0.0145 to +0.0272). Not statistically distinguishable from the market — by design.
 
 | Club | Projected pts | Title | Top 4 | Relegated |
 | --- | --- | --- | --- | --- |
-| Man City | 83.47 | 55.5% | 99.9% | 0.0% |
-| Arsenal | 81.68 | 41.8% | 99.7% | 0.0% |
-| Brighton | 68.91 | 2.4% | 82.6% | 0.0% |
-| Chelsea | 60.02 | 0.1% | 35.5% | 0.1% |
-| Liverpool | 58.77 | 0.1% | 29.1% | 0.1% |
-| Man United | 56.67 | 0.0% | 19.4% | 0.4% |
+| Arsenal | 84.13 | 85.9% | 99.9% | 0.0% |
+| Man City | 72.70 | 9.3% | 92.5% | 0.0% |
+| Brighton | 69.30 | 3.6% | 83.0% | 0.0% |
+| Liverpool | 65.01 | 1.0% | 61.6% | 0.0% |
+| Brentford | 58.20 | 0.1% | 19.5% | 0.1% |
+| Bournemouth | 57.31 | 0.1% | 16.0% | 0.2% |
