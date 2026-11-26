@@ -199,9 +199,10 @@ def _next_round_html(forecast: pd.DataFrame | None, figure: Path | None) -> str:
              f"<figcaption>M = model, P = de-vigged opening price. Model / price probabilities "
              f"are home / draw / away.</figcaption></figure>") if figure and figure.exists() else ""
     return f"""<h2>Next round</h2>
-<p class="lede">The weekly artefact: each fixture forecast by the fused model and compared with the
-de-vigged opening price. Fixtures already played keep their result in the last column, so the
-page doubles as a running account of the model's calls.</p>
+<p class="lede">The weekly artefact: each fixture forecast by the fused model, next to the de-vigged
+opening price whenever a bookmaker has published one (the schedule itself comes from the FPL API).
+Fixtures already played keep their result in the last column, so the page doubles as a running
+account of the model's calls.</p>
 {image}
 <table>
 <thead><tr><th>Kick-off</th><th>Fixture</th><th>Model H / D / A</th><th>Price H / D / A</th><th>Pick</th><th>Result</th></tr></thead>

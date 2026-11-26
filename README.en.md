@@ -154,7 +154,7 @@ week. It is the one artefact in this repository that gains value with time.
 | Week | Matches | Model hits | Market hits | Model LL | Market LL |
 | --- | --- | --- | --- | --- | --- |
 | 2026-W38 | 11 | 6 | 6 | 1.0400 | 1.0553 |
-| 2026-W41 | 9 | 4 | 4 | 1.0420 | 1.0470 |
+| 2026-W41 | 9 | 4 | 4 | 1.0421 | 1.0470 |
 | 2026-W42 | 10 | 5 | 7 | 1.0197 | 1.0128 |
 | 2026-W43 | 11 | 3 | 4 | 1.0381 | 1.0166 |
 | 2026-W44 | 9 | 6 | 5 | 1.0376 | 1.0174 |
