@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from .config import FEATURES_PARQUET, MATCHES_PARQUET, PREDICTIONS_PARQUET, ROOT, season_boundaries
+from .config import FEATURES_PARQUET, MATCHES_PARQUET, PREDICTIONS_PARQUET, REPORTS_DIR, ROOT, season_boundaries
 
 STALE_DAYS = 14
 
@@ -105,6 +105,25 @@ def run_checks(today: pd.Timestamp | None = None) -> list[Check]:
                             f"updated {pd.Timestamp(FIXTURE_PATH.stat().st_mtime, unit='s'):%Y-%m-%d}"))
     else:
         checks.append(Check("fixture feed", "warn", "missing — `pythia fetch`"))
+
+    # 8. the published round must still be in the future
+    forecast_path = REPORTS_DIR / "fixtures_forecast.csv"
+    if not forecast_path.exists():
+        checks.append(Check("published round", "warn", "no forecast yet — run `pythia report`"))
+    else:
+        forecast = pd.read_csv(forecast_path)
+        kickoffs = pd.to_datetime(forecast.get("kickoff"), errors="coerce", utc=True)
+        latest = kickoffs.max()
+        if pd.isna(latest):
+            checks.append(Check("published round", "warn", "unreadable kickoff column"))
+        else:
+            latest_local = latest.tz_convert("Europe/London").tz_localize(None).normalize()
+            lag = int((today - latest_local).days)
+            checks.append(Check(
+                "published round",
+                "ok" if lag <= 1 else "warn",
+                f"next kick-off {latest_local:%Y-%m-%d} ({'in the future' if lag <= 1 else f'{lag}d in the past — source stale?'})",
+            ))
 
     return checks
 

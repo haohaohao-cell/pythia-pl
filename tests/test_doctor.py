@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import pandas as pd
+import pytest
+
+from pythia import doctor
 from pythia.doctor import Check, format_checks, has_failures, run_checks
 
 VALID = {"ok", "warn", "fail"}
@@ -34,3 +38,34 @@ def test_has_failures() -> None:
 def test_empty_list_is_safe() -> None:
     assert format_checks([])
     assert has_failures([]) is False
+
+
+def _round_at(tmp_path, when: str):
+    (tmp_path / "fixtures_forecast.csv").write_text(
+        "kickoff,home,away\n" + when + ",alpha,bravo\n", encoding="utf-8"
+    )
+    return tmp_path
+
+
+def _published_check(checks):
+    return next(c for c in checks if c.name == "published round")
+
+
+def test_future_round_is_ok(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(doctor, "REPORTS_DIR", _round_at(tmp_path, "2030-01-01T15:00:00Z"))
+    check = _published_check(run_checks(today=pd.Timestamp("2029-12-30")))
+    assert check.status == "ok"
+    assert "in the future" in check.detail
+
+
+def test_past_round_warns(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(doctor, "REPORTS_DIR", _round_at(tmp_path, "2026-10-25T15:00:00Z"))
+    check = _published_check(run_checks(today=pd.Timestamp("2026-11-26")))
+    assert check.status == "warn"
+    assert "past" in check.detail
+
+
+def test_missing_round_warns(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(doctor, "REPORTS_DIR", tmp_path)
+    check = _published_check(run_checks())
+    assert check.status == "warn"
